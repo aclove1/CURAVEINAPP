@@ -1,0 +1,150 @@
+export type Scenario = 'conservative' | 'base' | 'aggressive'
+
+export interface ScenarioValues<T = number> {
+  conservative: T
+  base: T
+  aggressive: T
+}
+
+export interface Assumptions {
+  scenario: Scenario
+  cpl: ScenarioValues
+  contactRate: ScenarioValues
+  bookingRate: ScenarioValues
+  showRate: ScenarioValues
+  treatmentConversion: ScenarioValues
+  procsPerPatient: ScenarioValues
+  maxCapacityPerMonth: number
+  medicareRate: ScenarioValues
+  commercialMultiplier: ScenarioValues
+  medicareMix: number
+  commercialMix: number
+  wasteFactor: number
+  miscConsumables: number
+  postProcSupport: number
+  venasealPtsPerKit: number
+  scleroBuffer: number
+  vsMix: number
+  rfMix: number
+  scleroMix: number
+  venasealUnitCost: number
+  rfSupplyCost: number
+  scleroSupplyCost: number
+  marketingSpend: ScenarioValues<number[]>
+  physicianSalary: number
+  rvtSalary: number
+  maSalary: number
+  frontOfficeSalary: number
+  payrollTaxRate: number
+  benefitsRate: number
+  rent: number
+  malpractice: number
+  emr: number
+  billing: number
+  managementFeeRate: number
+  y2VolumeGrowth: ScenarioValues
+  y3VolumeGrowth: ScenarioValues
+}
+
+export interface FunnelMonth {
+  month: number
+  leads: number
+  contacts: number
+  booked: number
+  shows: number
+  treated: number
+  rawProcs: number
+  cappedProcs: number
+  utilization: number
+  excessDemand: number
+  marketingSpend: number
+}
+
+export interface RevenueMonth {
+  month: number
+  blendedRate: number
+  grossRevenue: number
+  managementFee: number
+  netRevenue: number
+  medicareRevenue: number
+  commercialRevenue: number
+  procs: number
+}
+
+export interface COGSMonth {
+  month: number
+  venasealCost: number
+  rfCost: number
+  scleroCost: number
+  postProcCost: number
+  miscCost: number
+  totalCOGS: number
+  procs: number
+}
+
+export interface OpexMonth {
+  month: number
+  personnelTotal: number
+  marketing: number
+  rent: number
+  malpractice: number
+  emr: number
+  billing: number
+  totalOpex: number
+}
+
+export interface PLMonth {
+  month: number
+  grossRevenue: number
+  managementFee: number
+  netRevenue: number
+  totalCOGS: number
+  grossProfit: number
+  grossMargin: number
+  totalOpex: number
+  ebitda: number
+  ebitdaMargin: number
+  procs: number
+}
+
+export interface AnnualPL {
+  year: 1 | 2 | 3
+  grossRevenue: number
+  managementFee: number
+  netRevenue: number
+  totalCOGS: number
+  grossProfit: number
+  grossMargin: number
+  totalOpex: number
+  ebitda: number
+  ebitdaMargin: number
+  totalProcs: number
+}
+
+export interface KeyMetrics {
+  avgMonthlyProcs: number
+  revenuePerProc: number
+  cogsPerProc: number
+  stabilizedMonthlyEbitda: number
+  revenuePerPatient: number
+  costPerAcquisition: number
+  breakevenProcs: number
+  breakevenMonth: number | null
+  y1TotalRevenue: number
+  y1TotalProcs: number
+  y2TotalRevenue: number
+  y3TotalRevenue: number
+  y1Ebitda: number
+  y2Ebitda: number
+  y3Ebitda: number
+}
+
+export interface CPTCode {
+  code: string
+  description: string
+  category: 'procedure' | 'em'
+  medicareRate: number
+  countAt50: number
+  countAt100: number
+  mixPct: number
+}
