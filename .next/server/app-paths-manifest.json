@@ -1,12 +1,3 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/cogs/page": "app/cogs/page.js",
-  "/cpt/page": "app/cpt/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/page": "app/page.js",
-  "/funnel/page": "app/funnel/page.js",
-  "/pl/page": "app/pl/page.js",
-  "/scenario/page": "app/scenario/page.js",
-  "/revenue/page": "app/revenue/page.js",
-  "/sensitivity/page": "app/sensitivity/page.js"
+  "/page": "app/page.js"
 }
