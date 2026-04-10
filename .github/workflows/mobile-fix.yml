@@ -1,0 +1,21 @@
+name: Claude Mobile Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Run Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          claude --allowedTools "Edit,Write,Read" -p "Make this Next.js Tailwind app fully mobile responsive. Fix navbar with hamburger menu below md breakpoint. Make all grids stack to single column on mobile. Wrap all tables in overflow-x-auto. Ensure Recharts use ResponsiveContainer. Fix scenario toggle bar for mobile. Do not touch lib/model.ts or lib/store.ts. Commit all changes with message: fix: full mobile responsiveness"
