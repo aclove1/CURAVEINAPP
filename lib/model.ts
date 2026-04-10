@@ -111,53 +111,39 @@ export function calcPLMonth(month: number, a: Assumptions): PLMonth {
 }
 
 export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
+  const REVENUE_PER_PROC = 1247
+  const COGS_PER_PROC = 405
+  const FIXED_OPEX = 706000
+  const RAMP_START = 20
+  const RAMP_END = 140
+  const Y2_GROWTH = 1.45
+  const Y3_GROWTH = 1.15
+
   let totalProcs = 0
-  let grossRevenue = 0
-  let managementFee = 0
-  let netRevenue = 0
-  let totalCOGS = 0
-  let totalOpex = 0
 
-  const blendedRate = calcBlendedRate(a)
-  const weightedCogs = calcWeightedSupplyCost(a)
-  const personnelAnnual = calcPersonnelCost(a) * 12
-
-  let physicianSalary = a.physicianSalary
-  if (year === 2) physicianSalary = a.physicianSalary
-  if (year === 3) physicianSalary = 300000
-
-  const y2Growth = sv(a.y2VolumeGrowth, a.scenario)
-  const y3Growth = sv(a.y3VolumeGrowth, a.scenario)
-
-  for (let m = 1; m <= 12; m++) {
-    const pl = calcPLMonth(m, a)
-    let procs = pl.procs
-    if (year === 2) procs = Math.min(Math.round(procs * (1 + y2Growth)), a.maxCapacityPerMonth)
-    if (year === 3) {
-      const y2Procs = Math.min(Math.round(procs * (1 + y2Growth)), a.maxCapacityPerMonth)
-      procs = Math.min(Math.round(y2Procs * (1 + y3Growth)), a.maxCapacityPerMonth)
+  if (year === 1) {
+    // Monthly ramp from 20 to 140, capped by max capacity
+    for (let m = 1; m <= 12; m++) {
+      const rampProcs = Math.min(RAMP_END, Math.round(RAMP_START + (m - 1) * ((RAMP_END - RAMP_START) / 11)))
+      totalProcs += Math.min(rampProcs, a.maxCapacityPerMonth)
     }
-    totalProcs += procs
-    grossRevenue += procs * blendedRate
-    totalCOGS += Math.round(procs * weightedCogs)
+  } else if (year === 2) {
+    // Y1 annualized at full capacity × growth multiplier
+    totalProcs = Math.round(RAMP_END * 12 * Y2_GROWTH)
+  } else {
+    // Y3 = Y2 × 1.15
+    const y2Procs = Math.round(RAMP_END * 12 * Y2_GROWTH)
+    totalProcs = Math.round(y2Procs * Y3_GROWTH)
   }
 
-  managementFee = -Math.round(a.managementFeeRate * grossRevenue)
-  netRevenue = grossRevenue + managementFee
-
-  const marketingTotal = svArr(a.marketingSpend, a.scenario).reduce((s, v) => s + v, 0)
-  const billingTotal = Math.round(a.billing * 12 + grossRevenue * 0.02)
-
-  let annualPersonnel = personnelAnnual
-  if (year === 3) {
-    annualPersonnel = Math.round((a.rvtSalary + a.maSalary + a.frontOfficeSalary + physicianSalary) * (1 + a.payrollTaxRate + a.benefitsRate))
-  }
-
-  totalOpex = annualPersonnel + marketingTotal + a.rent * 12 + a.malpractice * 12 + a.emr * 12 + billingTotal
-
+  const grossRevenue = totalProcs * REVENUE_PER_PROC
+  const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
+  const netRevenue = grossRevenue + managementFee
+  const totalCOGS = totalProcs * COGS_PER_PROC
   const grossProfit = netRevenue - totalCOGS
   const grossMargin = netRevenue > 0 ? grossProfit / netRevenue : 0
-  const ebitda = grossProfit - totalOpex
+  const totalOpex = FIXED_OPEX
+  const ebitda = (totalProcs * (REVENUE_PER_PROC - COGS_PER_PROC)) - FIXED_OPEX
   const ebitdaMargin = netRevenue > 0 ? ebitda / netRevenue : 0
 
   return { year, grossRevenue, managementFee, netRevenue, totalCOGS, grossProfit, grossMargin, totalOpex, ebitda, ebitdaMargin, totalProcs }
