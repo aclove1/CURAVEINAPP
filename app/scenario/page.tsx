@@ -8,6 +8,7 @@ import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { DEFAULT_ASSUMPTIONS } from '@/lib/defaults'
 import type { Assumptions } from '@/lib/types'
+import { TooltipInfo } from '@/components/ui/TooltipInfo'
 
 function NumberInput({
   value,
@@ -64,18 +65,20 @@ function ScenarioRow({
   field,
   isPercent,
   prefix,
+  tooltip,
 }: {
   label: string
   field: keyof Assumptions
   isPercent?: boolean
   prefix?: string
+  tooltip?: { text: string; href: string }
 }) {
   const { assumptions, updateAssumption } = useModelStore()
   const val = assumptions[field] as { conservative: number; base: number; aggressive: number }
 
   return (
     <tr className="border-b border-gray-800 hover:bg-gray-800/20">
-      <td className="px-4 py-2.5 text-sm text-gray-300">{label}</td>
+      <td className="px-4 py-2.5 text-sm text-gray-300">{label}{tooltip && <TooltipInfo text={tooltip.text} href={tooltip.href} />}</td>
       {SCEN_KEYS.map((sk) => (
         <td key={sk} className="px-4 py-2.5 text-right">
           <NumberInput
@@ -187,11 +190,11 @@ export default function ScenarioPage() {
             updateAssumption('procsPerPatient', d.procsPerPatient)
           }}>
             <ScenarioRow label="Cost Per Lead ($)" field="cpl" prefix="$" />
-            <ScenarioRow label="Contact Rate" field="contactRate" isPercent />
-            <ScenarioRow label="Booking Rate" field="bookingRate" isPercent />
-            <ScenarioRow label="Show Rate" field="showRate" isPercent />
-            <ScenarioRow label="Treatment Conversion" field="treatmentConversion" isPercent />
-            <ScenarioRow label="Procedures / Patient" field="procsPerPatient" />
+            <ScenarioRow label="Contact Rate" field="contactRate" isPercent tooltip={{ text: 'Phone leads convert 25\u201340%; <5 min response increases conversion 21\u00d7', href: 'https://www.invoca.com/reports/the-invoca-call-conversion-benchmarks-report-for-the-healthcare-industry-2025' }} />
+            <ScenarioRow label="Booking Rate" field="bookingRate" isPercent tooltip={{ text: '~54% booking rate from contacted leads', href: 'https://www.venatorpm.com/vein-and-vascular-marketing' }} />
+            <ScenarioRow label="Show Rate" field="showRate" isPercent tooltip={{ text: 'Healthcare no-show ~18\u201325%', href: 'https://finturf.com/blog/reduce-patient-no-shows/' }} />
+            <ScenarioRow label="Treatment Conversion" field="treatmentConversion" isPercent tooltip={{ text: 'Elective consult-to-treatment ~41\u201360%', href: 'https://www.sciencedirect.com/science/article/pii/S1529943024001128' }} />
+            <ScenarioRow label="Procedures / Patient" field="procsPerPatient" tooltip={{ text: '2\u20134 CPT codes per patient typical', href: 'https://pubmed.ncbi.nlm.nih.gov/10396491/' }} />
             <SingleRow label="Max Capacity / Month" field="maxCapacityPerMonth" />
           </SectionTable>
 

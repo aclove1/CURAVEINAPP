@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, SlidersHorizontal, TrendingUp, DollarSign, Package, ChartBar as BarChart3, Activity, FileText } from 'lucide-react'
+import { LayoutDashboard, SlidersHorizontal, TrendingUp, DollarSign, Package, ChartBar as BarChart3, Activity, FileText, BookOpen } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: '/pl', label: 'P&L', icon: BarChart3 },
   { href: '/sensitivity', label: 'Sensitivity', icon: Activity },
   { href: '/cpt', label: 'CPT Revenue', icon: FileText },
+  { href: '/citations', label: 'Citations', icon: BookOpen },
 ]
 
 export function Sidebar() {
