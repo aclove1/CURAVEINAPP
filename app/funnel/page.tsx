@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import { useRouter } from 'next/navigation'
 import { useModelStore } from '@/lib/store'
-import { calcFunnelMonth } from '@/lib/model'
+import { calcFunnelMonth, adjustAssumptionsForYear } from '@/lib/model'
 import { fmtNumber, fmtPct, fmtCurrency, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
@@ -59,11 +59,17 @@ function utilColor(u: number) {
 
 export default function FunnelPage() {
   const { assumptions } = useModelStore()
+  const [tableYear, setTableYear] = useState<1 | 2 | 3>(1)
 
   const months = useMemo(() =>
     Array.from({ length: 12 }, (_, i) => calcFunnelMonth(i + 1, assumptions)),
     [assumptions]
   )
+
+  const tableMonths = useMemo(() => {
+    const adj = adjustAssumptionsForYear(tableYear, assumptions)
+    return Array.from({ length: 12 }, (_, i) => calcFunnelMonth(i + 1, adj))
+  }, [assumptions, tableYear])
 
   const waterfallData = useMemo(() => months.map((m, i) => ({
     month: MONTH_LABELS[i],
@@ -168,8 +174,23 @@ export default function FunnelPage() {
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-800">
+          <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-300">Monthly Funnel Detail</h2>
+            <div className="flex gap-1">
+              {([1, 2, 3] as const).map((y) => (
+                <button
+                  key={y}
+                  onClick={() => setTableYear(y)}
+                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                    tableYear === y
+                      ? 'bg-[#5faaa6] text-white'
+                      : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Y{y}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -187,7 +208,7 @@ export default function FunnelPage() {
                 </tr>
               </thead>
               <tbody>
-                {months.map((m, i) => (
+                {tableMonths.map((m, i) => (
                   <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                     <td className="px-4 py-2.5 text-gray-300 font-medium">{MONTH_LABELS[i]}</td>
                     <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.marketingSpend, false)}</td>
@@ -204,14 +225,14 @@ export default function FunnelPage() {
                 ))}
                 <tr className="bg-gray-800/30 font-semibold">
                   <td className="px-4 py-2.5 text-gray-200">Total</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(months.reduce((s, m) => s + m.marketingSpend, 0), false)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(months.reduce((s, m) => s + m.leads, 0))}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(months.reduce((s, m) => s + m.contacts, 0))}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(months.reduce((s, m) => s + m.booked, 0))}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(months.reduce((s, m) => s + m.shows, 0))}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(months.reduce((s, m) => s + m.treated, 0))}</td>
-                  <td className="px-4 py-2.5 text-right text-white">{fmtNumber(totalProcs)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400">{fmtPct(totalProcs / (assumptions.maxCapacityPerMonth * 12))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(tableMonths.reduce((s, m) => s + m.marketingSpend, 0), false)}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.leads, 0))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.contacts, 0))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.booked, 0))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.shows, 0))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.treated, 0))}</td>
+                  <td className="px-4 py-2.5 text-right text-white">{fmtNumber(tableMonths.reduce((s, m) => s + m.cappedProcs, 0))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-400">{fmtPct(tableMonths.reduce((s, m) => s + m.cappedProcs, 0) / (assumptions.maxCapacityPerMonth * 12))}</td>
                 </tr>
               </tbody>
             </table>

@@ -245,7 +245,7 @@ function boostScenarioValues(
   }
 }
 
-function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assumptions {
+export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assumptions {
   if (year === 1) return a
 
   // Y2: 10% improvement on Y1 base rates
