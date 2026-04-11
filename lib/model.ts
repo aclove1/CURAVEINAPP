@@ -278,14 +278,12 @@ export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
   let totalProcs = 0
   let grossRevenue = 0
   let totalCOGS = 0
-  let totalOpexSum = 0
 
   for (let m = 1; m <= 12; m++) {
     const pl = calcPLMonth(m, adj)
     totalProcs += pl.procs
     grossRevenue += pl.grossRevenue
     totalCOGS += pl.totalCOGS
-    totalOpexSum += pl.totalOpex
   }
 
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
