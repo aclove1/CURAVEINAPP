@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { useModelStore } from '@/lib/store'
-import { calcKeyMetrics } from '@/lib/model'
-import { fmtCurrency, fmtDecimal } from '@/lib/formatters'
+import { calcKeyMetrics, calcVarithenaBlendedRate, normalizeWeights, normalizePayerMix, validateFinancialModel } from '@/lib/model'
+import { fmtCurrency, fmtDecimal, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { DEFAULT_ASSUMPTIONS } from '@/lib/defaults'
-import type { Assumptions } from '@/lib/types'
+import type { Assumptions, PayerWeights, ProcedurePayerRates } from '@/lib/types'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
 
 function NumberInput({
@@ -134,7 +134,7 @@ function SectionTable({
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
+        <h3 className="text-sm font-semibold text-[#5faaa6]">{title}</h3>
         <button onClick={onReset} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Reset</button>
       </div>
       <table className="w-full">
@@ -152,9 +152,146 @@ function SectionTable({
   )
 }
 
+const PAYER_KEYS: (keyof PayerWeights)[] = ['aetna', 'bcbs', 'humana', 'uhc', 'medicare']
+const PAYER_LABELS: Record<keyof PayerWeights, string> = { aetna: 'Aetna', bcbs: 'BCBS', humana: 'Humana', uhc: 'UHC', medicare: 'Medicare' }
+
+function PayerMixSection() {
+  const { assumptions, updateAssumption } = useModelStore()
+  const mix = assumptions.payerMix
+  const normalized = normalizePayerMix(mix)
+  const sum = mix.aetna + mix.bcbs + mix.humana + mix.uhc + mix.medicare
+
+  const handlePayerChange = (field: keyof PayerWeights, raw: number) => {
+    const updated = { ...mix, [field]: Math.max(0, raw) }
+    updateAssumption('payerMix', normalizeWeights(updated))
+  }
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-[#5faaa6]">Payer Mix</h3>
+        <button
+          onClick={() => updateAssumption('payerMix', DEFAULT_ASSUMPTIONS.payerMix)}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        >Reset</button>
+      </div>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-gray-800 bg-gray-900/50">
+            <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">Payer</th>
+            <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">Weight</th>
+            <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">Effective</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PAYER_KEYS.map((pk) => (
+            <tr key={pk} className="border-b border-gray-800 hover:bg-gray-800/20">
+              <td className="px-4 py-2.5 text-sm text-gray-300">{PAYER_LABELS[pk]}</td>
+              <td className="px-4 py-2.5 text-right">
+                <NumberInput
+                  value={mix[pk]}
+                  isPercent
+                  onChange={(v) => handlePayerChange(pk, v)}
+                />
+              </td>
+              <td className="px-4 py-2.5 text-right text-xs text-gray-500">{fmtPct(normalized[pk])}</td>
+            </tr>
+          ))}
+          <tr className="bg-gray-800/30">
+            <td className="px-4 py-2.5 text-sm font-semibold text-gray-200">Payer total</td>
+            <td className="px-4 py-2.5 text-right text-sm font-semibold text-gray-200">{(sum * 100).toFixed(1)}%</td>
+            <td className="px-4 py-2.5 text-right text-xs text-gray-500">100.0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function VarithenaRatesSection() {
+  const { assumptions, updateAssumption } = useModelStore()
+
+  function updateRate(cpt: 'varithenaRates36465' | 'varithenaRates36466', payer: keyof ProcedurePayerRates, v: number) {
+    updateAssumption(cpt, { ...assumptions[cpt], [payer]: v })
+  }
+
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-[#5faaa6]">Varithena Rates by Payer</h3>
+        <button
+          onClick={() => {
+            updateAssumption('varithenaRates36465', DEFAULT_ASSUMPTIONS.varithenaRates36465)
+            updateAssumption('varithenaRates36466', DEFAULT_ASSUMPTIONS.varithenaRates36466)
+          }}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        >Reset</button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-800 bg-gray-900/50">
+              <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">CPT</th>
+              {PAYER_KEYS.map((pk) => (
+                <th key={pk} className="text-right px-4 py-2 text-xs text-gray-500 font-medium">{PAYER_LABELS[pk]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(['varithenaRates36465', 'varithenaRates36466'] as const).map((cpt) => (
+              <tr key={cpt} className="border-b border-gray-800 hover:bg-gray-800/20">
+                <td className="px-4 py-2.5 text-sm text-gray-300">{cpt === 'varithenaRates36465' ? '36465' : '36466'}</td>
+                {PAYER_KEYS.map((pk) => (
+                  <td key={pk} className="px-4 py-2.5 text-right">
+                    <NumberInput
+                      value={assumptions[cpt][pk]}
+                      prefix="$"
+                      onChange={(v) => updateRate(cpt, pk, v)}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export default function ScenarioPage() {
   const { assumptions, updateAssumption, resetToDefaults } = useModelStore()
   const metrics = useMemo(() => calcKeyMetrics(assumptions), [assumptions])
+
+  const mixSum = assumptions.vsMix + assumptions.rfMix + assumptions.scleroMix + assumptions.varithenaShare
+
+  const handleMixChange = (field: 'vsMix' | 'rfMix' | 'scleroMix' | 'varithenaShare', raw: number) => {
+    const updated = {
+      vsMix: assumptions.vsMix,
+      rfMix: assumptions.rfMix,
+      scleroMix: assumptions.scleroMix,
+      varithenaShare: assumptions.varithenaShare,
+      [field]: Math.max(0, raw),
+    }
+    const norm = normalizeWeights(updated)
+    updateAssumption('vsMix', norm.vsMix)
+    updateAssumption('rfMix', norm.rfMix)
+    updateAssumption('scleroMix', norm.scleroMix)
+    updateAssumption('varithenaShare', norm.varithenaShare)
+  }
+
+  useMemo(() => {
+    const y1 = metrics
+    validateFinancialModel({
+      procedureMix: { vsMix: assumptions.vsMix, rfMix: assumptions.rfMix, scleroMix: assumptions.scleroMix, varithenaShare: assumptions.varithenaShare },
+      payerMix: assumptions.payerMix,
+      varithenaBlendedRate: calcVarithenaBlendedRate(assumptions),
+      totalRevenue: y1.y1TotalRevenue,
+      totalCOGS: y1.y1TotalRevenue - y1.y1Ebitda - 706000,
+      ebitda: y1.y1Ebitda,
+      breakevenProcedures: y1.breakevenProcs,
+    })
+  }, [assumptions, metrics])
 
   return (
     <div>
@@ -212,30 +349,66 @@ export default function ScenarioPage() {
             <SingleRow label="Management Fee Rate" field="managementFeeRate" isPercent />
           </SectionTable>
 
-          <SectionTable title="Supply Costs" onReset={() => {
-            const d = DEFAULT_ASSUMPTIONS
-            updateAssumption('venasealUnitCost', d.venasealUnitCost)
-            updateAssumption('rfSupplyCost', d.rfSupplyCost)
-            updateAssumption('scleroSupplyCost', d.scleroSupplyCost)
-            updateAssumption('wasteFactor', d.wasteFactor)
-            updateAssumption('miscConsumables', d.miscConsumables)
-            updateAssumption('postProcSupport', d.postProcSupport)
-            updateAssumption('venasealPtsPerKit', d.venasealPtsPerKit)
-            updateAssumption('vsMix', d.vsMix)
-            updateAssumption('rfMix', d.rfMix)
-            updateAssumption('scleroMix', d.scleroMix)
-          }}>
-            <SingleRow label="VenaSeal Unit Cost ($)" field="venasealUnitCost" prefix="$" />
-            <SingleRow label="RF Supply Cost ($)" field="rfSupplyCost" prefix="$" />
-            <SingleRow label="Sclero Supply Cost ($)" field="scleroSupplyCost" prefix="$" />
-            <SingleRow label="Waste Factor" field="wasteFactor" isPercent />
-            <SingleRow label="Misc Consumables ($)" field="miscConsumables" prefix="$" />
-            <SingleRow label="Post-Proc Support ($)" field="postProcSupport" prefix="$" />
-            <SingleRow label="VenaSeal Pts/Kit" field="venasealPtsPerKit" />
-            <SingleRow label="VS Mix" field="vsMix" isPercent />
-            <SingleRow label="RF Mix" field="rfMix" isPercent />
-            <SingleRow label="Sclero Mix" field="scleroMix" isPercent />
-          </SectionTable>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#5faaa6]">Procedure Mix & Supply Costs</h3>
+              <button onClick={() => {
+                const d = DEFAULT_ASSUMPTIONS
+                updateAssumption('vsMix', d.vsMix)
+                updateAssumption('rfMix', d.rfMix)
+                updateAssumption('scleroMix', d.scleroMix)
+                updateAssumption('varithenaShare', d.varithenaShare)
+                updateAssumption('venasealUnitCost', d.venasealUnitCost)
+                updateAssumption('rfSupplyCost', d.rfSupplyCost)
+                updateAssumption('scleroSupplyCost', d.scleroSupplyCost)
+                updateAssumption('wasteFactor', d.wasteFactor)
+                updateAssumption('miscConsumables', d.miscConsumables)
+                updateAssumption('postProcSupport', d.postProcSupport)
+                updateAssumption('venasealPtsPerKit', d.venasealPtsPerKit)
+                updateAssumption('varithenaDrugCost', d.varithenaDrugCost)
+              }} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Reset</button>
+            </div>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800 bg-gray-900/50">
+                  <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">Parameter</th>
+                  <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium" colSpan={3}>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  { label: 'VS Mix', field: 'vsMix' as const },
+                  { label: 'RF Mix', field: 'rfMix' as const },
+                  { label: 'Sclero Mix', field: 'scleroMix' as const },
+                  { label: 'Varithena (36465/36466)', field: 'varithenaShare' as const },
+                ] as const).map(({ label, field }) => (
+                  <tr key={field} className="border-b border-gray-800 hover:bg-gray-800/20">
+                    <td className="px-4 py-2.5 text-sm text-gray-300">{label}</td>
+                    <td className="px-4 py-2.5 text-right" colSpan={3}>
+                      <NumberInput
+                        value={assumptions[field]}
+                        isPercent
+                        onChange={(v) => handleMixChange(field, v)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-800/30">
+                  <td className="px-4 py-2.5 text-sm font-semibold text-gray-200">Mix total</td>
+                  <td className="px-4 py-2.5 text-right text-sm font-semibold text-gray-200" colSpan={3}>{(mixSum * 100).toFixed(1)}%</td>
+                </tr>
+                <tr><td colSpan={4} className="h-2" /></tr>
+                <SingleRow label="VenaSeal Unit Cost ($)" field="venasealUnitCost" prefix="$" />
+                <SingleRow label="RF Supply Cost ($)" field="rfSupplyCost" prefix="$" />
+                <SingleRow label="Sclero Supply Cost ($)" field="scleroSupplyCost" prefix="$" />
+                <SingleRow label="Drug cost/procedure ($)" field="varithenaDrugCost" prefix="$" />
+                <SingleRow label="Waste Factor" field="wasteFactor" isPercent />
+                <SingleRow label="Misc Consumables ($)" field="miscConsumables" prefix="$" />
+                <SingleRow label="Post-Proc Support ($)" field="postProcSupport" prefix="$" />
+                <SingleRow label="VenaSeal Pts/Kit" field="venasealPtsPerKit" />
+              </tbody>
+            </table>
+          </div>
 
           <SectionTable title="Personnel & Fixed Costs" onReset={() => {
             const d = DEFAULT_ASSUMPTIONS
@@ -270,6 +443,9 @@ export default function ScenarioPage() {
             <ScenarioRow label="Y2 Volume Growth" field="y2VolumeGrowth" isPercent />
             <ScenarioRow label="Y3 Volume Growth" field="y3VolumeGrowth" isPercent />
           </SectionTable>
+
+          <PayerMixSection />
+          <VarithenaRatesSection />
         </div>
       </div>
     </div>

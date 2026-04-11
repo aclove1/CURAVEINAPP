@@ -18,9 +18,9 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   postProcSupport: 17.50,
   venasealPtsPerKit: 2.3,
   scleroBuffer: 0.125,
-  vsMix: 0.65,
+  vsMix: 0.56,
   rfMix: 0.10,
-  scleroMix: 0.25,
+  scleroMix: 0.19,
   venasealUnitCost: 850,
   rfSupplyCost: 120,
   scleroSupplyCost: 45,
@@ -42,6 +42,11 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   managementFeeRate: 0.08,
   y2VolumeGrowth: { conservative: 0.10, base: 0.15, aggressive: 0.25 },
   y3VolumeGrowth: { conservative: 0.08, base: 0.12, aggressive: 0.20 },
+  varithenaShare: 0.15,
+  varithenaRates36465: { aetna: 1320, bcbs: 1450, humana: 1290, uhc: 1380, medicare: 1300 },
+  varithenaRates36466: { aetna: 1420, bcbs: 1560, humana: 1380, uhc: 1490, medicare: 1400 },
+  varithenaDrugCost: 300,
+  payerMix: { aetna: 0.14, bcbs: 0.32, humana: 0.12, uhc: 0.18, medicare: 0.24 },
 }
 
 export const CPT_CODES = [

@@ -6,6 +6,36 @@ export interface ScenarioValues<T = number> {
   aggressive: T
 }
 
+export type PayerWeights = {
+  aetna: number
+  bcbs: number
+  humana: number
+  uhc: number
+  medicare: number
+}
+
+export type ProcedurePayerRates = {
+  aetna: number
+  bcbs: number
+  humana: number
+  uhc: number
+  medicare: number
+}
+
+export type ProcedureMix = {
+  vsMix: number
+  rfMix: number
+  scleroMix: number
+  varithenaShare: number
+}
+
+export type VarithenaState = {
+  varithenaShare: number
+  varithenaDrugCost: number
+  varithenaRates36465: ProcedurePayerRates
+  varithenaRates36466: ProcedurePayerRates
+}
+
 export interface Assumptions {
   scenario: Scenario
   cpl: ScenarioValues
@@ -44,6 +74,11 @@ export interface Assumptions {
   managementFeeRate: number
   y2VolumeGrowth: ScenarioValues
   y3VolumeGrowth: ScenarioValues
+  varithenaShare: number
+  varithenaRates36465: ProcedurePayerRates
+  varithenaRates36466: ProcedurePayerRates
+  varithenaDrugCost: number
+  payerMix: PayerWeights
 }
 
 export interface FunnelMonth {
@@ -76,6 +111,7 @@ export interface COGSMonth {
   venasealCost: number
   rfCost: number
   scleroCost: number
+  varithenaCost: number
   postProcCost: number
   miscCost: number
   totalCOGS: number

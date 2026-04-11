@@ -3,12 +3,12 @@
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useModelStore } from '@/lib/store'
-import { calcCOGSMonth, calcWeightedSupplyCost, calcRevenueMonth } from '@/lib/model'
+import { calcCOGSMonth, calcWeightedSupplyCost, calcRevenueMonth, calcVarithenaCostPerProc } from '@/lib/model'
 import { fmtCurrency, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 
-const DONUT_COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#f59e0b']
+const DONUT_COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b']
 
 export default function CogsPage() {
   const { assumptions } = useModelStore()
@@ -31,6 +31,7 @@ export default function CogsPage() {
   const totVS = months.reduce((s, m) => s + m.venasealCost, 0)
   const totRF = months.reduce((s, m) => s + m.rfCost, 0)
   const totScl = months.reduce((s, m) => s + m.scleroCost, 0)
+  const totVar = months.reduce((s, m) => s + m.varithenaCost, 0)
   const totPost = months.reduce((s, m) => s + m.postProcCost, 0)
   const totMisc = months.reduce((s, m) => s + m.miscCost, 0)
 
@@ -38,6 +39,7 @@ export default function CogsPage() {
     { name: 'VenaSeal', value: totVS },
     { name: 'RF Ablation', value: totRF },
     { name: 'Sclerotherapy', value: totScl },
+    { name: 'Varithena', value: totVar },
     { name: 'Post-Proc Support', value: totPost + totMisc },
   ]
 
@@ -98,6 +100,7 @@ export default function CogsPage() {
                 { label: 'VenaSeal', cost: (assumptions.venasealUnitCost / assumptions.venasealPtsPerKit) * (1 + assumptions.wasteFactor), mix: assumptions.vsMix },
                 { label: 'RF Ablation', cost: assumptions.rfSupplyCost * (1 + assumptions.wasteFactor), mix: assumptions.rfMix },
                 { label: 'Sclerotherapy', cost: assumptions.scleroSupplyCost * (1 + assumptions.scleroBuffer) * (1 + assumptions.wasteFactor), mix: assumptions.scleroMix },
+                { label: 'Varithena', cost: calcVarithenaCostPerProc(assumptions), mix: assumptions.varithenaShare },
                 { label: 'Misc Consumables', cost: assumptions.miscConsumables, mix: 1 },
                 { label: 'Post-Proc Support', cost: assumptions.postProcSupport, mix: 1 },
               ].map((row, i) => (
@@ -170,6 +173,7 @@ export default function CogsPage() {
                   <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">VenaSeal</th>
                   <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">RF</th>
                   <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Sclero</th>
+                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Varithena</th>
                   <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Post-Proc</th>
                   <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Misc</th>
                   <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Total COGS</th>
@@ -183,6 +187,7 @@ export default function CogsPage() {
                     <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.venasealCost)}</td>
                     <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.rfCost)}</td>
                     <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.scleroCost)}</td>
+                    <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.varithenaCost)}</td>
                     <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.postProcCost)}</td>
                     <td className="px-4 py-2.5 text-right text-gray-300">{fmtCurrency(m.miscCost)}</td>
                     <td className="px-4 py-2.5 text-right text-orange-400 font-semibold">{fmtCurrency(m.totalCOGS)}</td>
@@ -194,6 +199,7 @@ export default function CogsPage() {
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(totVS)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(totRF)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(totScl)}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(totVar)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(totPost)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtCurrency(totMisc)}</td>
                   <td className="px-4 py-2.5 text-right text-orange-400">{fmtCurrency(totalCOGS)}</td>
