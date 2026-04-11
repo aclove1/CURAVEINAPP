@@ -221,42 +221,96 @@ export function calcPLMonth(month: number, a: Assumptions): PLMonth {
   }
 }
 
-/* ── Step 8 — Annual P&L (financials) ─────────────────────── */
+/* ── Year-over-year conversion rate improvements ─────────── */
+
+const CONVERSION_CAPS = {
+  contactRate: 0.55,
+  bookingRate: 0.70,
+  showRate: 0.85,
+  treatmentConversion: 0.75,
+}
+
+const Y2_IMPROVEMENT = 0.10
+const Y3_IMPROVEMENT = 0.15
+
+function boostScenarioValues(
+  base: { conservative: number; base: number; aggressive: number },
+  factor: number,
+  cap: number,
+): { conservative: number; base: number; aggressive: number } {
+  return {
+    conservative: Math.min(base.conservative * (1 + factor), cap),
+    base: Math.min(base.base * (1 + factor), cap),
+    aggressive: Math.min(base.aggressive * (1 + factor), cap),
+  }
+}
+
+function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assumptions {
+  if (year === 1) return a
+
+  // Y2: 10% improvement on Y1 base rates
+  const y2 = {
+    ...a,
+    contactRate: boostScenarioValues(a.contactRate, Y2_IMPROVEMENT, CONVERSION_CAPS.contactRate),
+    bookingRate: boostScenarioValues(a.bookingRate, Y2_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
+    showRate: boostScenarioValues(a.showRate, Y2_IMPROVEMENT, CONVERSION_CAPS.showRate),
+    treatmentConversion: boostScenarioValues(a.treatmentConversion, Y2_IMPROVEMENT, CONVERSION_CAPS.treatmentConversion),
+  }
+  if (year === 2) return y2
+
+  // Y3: 15% improvement on top of Y2 rates
+  return {
+    ...y2,
+    contactRate: boostScenarioValues(y2.contactRate, Y3_IMPROVEMENT, CONVERSION_CAPS.contactRate),
+    bookingRate: boostScenarioValues(y2.bookingRate, Y3_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
+    showRate: boostScenarioValues(y2.showRate, Y3_IMPROVEMENT, CONVERSION_CAPS.showRate),
+    treatmentConversion: boostScenarioValues(y2.treatmentConversion, Y3_IMPROVEMENT, CONVERSION_CAPS.treatmentConversion),
+  }
+}
+
+/* ── Step 8 — Annual P&L (funnel-driven) ─────────────────── */
 
 export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
   const FIXED_OPEX = 706000
-  const RAMP_START = 20
-  const RAMP_END = 140
-  const Y2_GROWTH = 1.45
-  const Y3_GROWTH = 1.15
 
-  const revenuePerProc = calcOverallBlendedRate(a)
-  const cogsPerProc = calcWeightedSupplyCost(a)
+  const adj = adjustAssumptionsForYear(year, a)
 
   let totalProcs = 0
+  let grossRevenue = 0
+  let totalCOGS = 0
+  let totalOpexSum = 0
 
-  if (year === 1) {
-    for (let m = 1; m <= 12; m++) {
-      const rampProcs = Math.min(RAMP_END, Math.round(RAMP_START + (m - 1) * ((RAMP_END - RAMP_START) / 11)))
-      totalProcs += Math.min(rampProcs, a.maxCapacityPerMonth)
-    }
-  } else if (year === 2) {
-    totalProcs = Math.round(RAMP_END * 12 * Y2_GROWTH)
-  } else {
-    const y2Procs = Math.round(RAMP_END * 12 * Y2_GROWTH)
-    totalProcs = Math.round(y2Procs * Y3_GROWTH)
+  for (let m = 1; m <= 12; m++) {
+    const pl = calcPLMonth(m, adj)
+    totalProcs += pl.procs
+    grossRevenue += pl.grossRevenue
+    totalCOGS += pl.totalCOGS
+    totalOpexSum += pl.totalOpex
   }
 
-  const totalRevenue = roundCurrency(totalProcs * revenuePerProc)
-  const totalCOGS = roundCurrency(totalProcs * cogsPerProc)
-  const grossRevenue = totalRevenue
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
   const netRevenue = grossRevenue + managementFee
   const grossProfit = netRevenue - totalCOGS
   const grossMargin = netRevenue > 0 ? grossProfit / netRevenue : 0
   const totalOpex = FIXED_OPEX
-  const ebitda = roundCurrency(totalRevenue - totalCOGS - FIXED_OPEX)
+  const ebitda = roundCurrency(grossRevenue - totalCOGS - FIXED_OPEX)
   const ebitdaMargin = netRevenue > 0 ? ebitda / netRevenue : 0
+
+  console.group(`[CuraVein Diag] calcAnnualPL — Y${year}`)
+  console.log('Conversion rates (funnel-driven):')
+  console.log('  contactRate:', sv(adj.contactRate, adj.scenario).toFixed(4))
+  console.log('  bookingRate:', sv(adj.bookingRate, adj.scenario).toFixed(4))
+  console.log('  showRate:', sv(adj.showRate, adj.scenario).toFixed(4))
+  console.log('  treatmentConversion:', sv(adj.treatmentConversion, adj.scenario).toFixed(4))
+  console.log('  procsPerPatient:', sv(adj.procsPerPatient, adj.scenario))
+  if (year >= 2) console.log('  Y2 improvement: +10%, caps:', JSON.stringify(CONVERSION_CAPS))
+  if (year === 3) console.log('  Y3 improvement: +15% on Y2 rates, same caps')
+  console.log('Volume (from funnel):')
+  console.log('  totalProcs:', totalProcs, ' monthlyAvg:', (totalProcs / 12).toFixed(1))
+  console.log('  grossRevenue:', grossRevenue)
+  console.log('  totalCOGS:', totalCOGS)
+  console.log('  EBITDA:', ebitda)
+  console.groupEnd()
 
   return { year, grossRevenue, managementFee, netRevenue, totalCOGS, grossProfit, grossMargin, totalOpex, ebitda, ebitdaMargin, totalProcs }
 }

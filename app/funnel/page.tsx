@@ -1,15 +1,55 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line, Legend
 } from 'recharts'
+import { useRouter } from 'next/navigation'
 import { useModelStore } from '@/lib/store'
 import { calcFunnelMonth } from '@/lib/model'
 import { fmtNumber, fmtPct, fmtCurrency, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
+import { getCitationById } from '@/lib/citations'
+
+const HEADER_CITATIONS: Record<string, string> = {
+  Contacts: 'contactRate',
+  Booked: 'bookingRate',
+  Shows: 'showRate',
+  Treated: 'treatmentRate',
+  Procs: 'proceduresPerPatient',
+}
+
+function CitationIcon({ citationId }: { citationId: string }) {
+  const router = useRouter()
+  const [show, setShow] = useState(false)
+  const citation = getCitationById(citationId)
+  if (!citation) return null
+
+  return (
+    <span
+      className="relative inline-flex items-center ml-1.5"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <span
+        className="text-[#5faaa6] cursor-pointer text-[10px] select-none hover:text-[#7cc4c0]"
+        onClick={() => router.push(`/citations?highlight=${citationId}`)}
+      >
+        &#9432;
+      </span>
+      {show && (
+        <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 w-56 rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-xs text-gray-300 shadow-lg pointer-events-none">
+          <span className="font-mono text-[#5faaa6]">{citation.value}</span>
+          <span className="text-gray-500"> — </span>
+          <span>{citation.rationale}</span>
+          <span className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-700" />
+        </span>
+      )}
+    </span>
+  )
+}
 
 function utilColor(u: number) {
   if (u >= 0.95) return '#ef4444'
@@ -55,6 +95,8 @@ export default function FunnelPage() {
     Treated: '#a78bfa',
     Procedures: '#14b8a6',
   }
+
+  const HEADERS = ['Month', 'Mktg Spend', 'Leads', 'Contacts', 'Booked', 'Shows', 'Treated', 'Procs', 'Utilization']
 
   return (
     <div>
@@ -133,15 +175,15 @@ export default function FunnelPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-800">
-                  <th className="text-left px-4 py-2.5 text-xs text-gray-400 font-medium">Month</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Mktg Spend</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Leads</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Contacts</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Booked</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Shows</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Treated</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Procs</th>
-                  <th className="text-right px-4 py-2.5 text-xs text-gray-400 font-medium">Utilization</th>
+                  {HEADERS.map((h) => (
+                    <th
+                      key={h}
+                      className={`${h === 'Month' ? 'text-left' : 'text-right'} px-4 py-2.5 text-xs text-gray-400 font-medium`}
+                    >
+                      {h}
+                      {HEADER_CITATIONS[h] && <CitationIcon citationId={HEADER_CITATIONS[h]} />}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
