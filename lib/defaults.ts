@@ -3,8 +3,8 @@ import type { Assumptions } from './types'
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   scenario: 'base',
   cpl: { conservative: 75, base: 50, aggressive: 40 },
-  contactRate: { conservative: 0.60, base: 0.70, aggressive: 0.80 },
-  bookingRate: { conservative: 0.50, base: 0.60, aggressive: 0.70 },
+  contactRate: { conservative: 0.25, base: 0.35, aggressive: 0.45 },
+  bookingRate: { conservative: 0.44, base: 0.54, aggressive: 0.64 },
   showRate: { conservative: 0.65, base: 0.75, aggressive: 0.85 },
   treatmentConversion: { conservative: 0.55, base: 0.65, aggressive: 0.75 },
   procsPerPatient: { conservative: 2.2, base: 2.5, aggressive: 2.8 },

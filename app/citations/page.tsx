@@ -3,13 +3,13 @@ import { TopBar } from '@/components/layout/TopBar'
 const CITATIONS = [
   {
     assumption: 'Contact Rate',
-    value: '0.70',
+    value: '0.35',
     rationale: 'Phone leads convert 25\u201340%; <5 min response increases conversion ~21\u00d7',
     link: 'https://www.invoca.com/reports/the-invoca-call-conversion-benchmarks-report-for-the-healthcare-industry-2025',
   },
   {
     assumption: 'Booking Rate',
-    value: '0.60',
+    value: '0.54',
     rationale: 'Vein campaigns show ~54% booking from contacted leads',
     link: 'https://www.venatorpm.com/vein-and-vascular-marketing',
   },
