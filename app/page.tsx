@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useModelStore } from '@/lib/store'
 import { calcKeyMetrics, calcAnnualPL } from '@/lib/model'
-import { fmtCurrency, fmtNumber, fmtDecimal } from '@/lib/formatters'
+import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 
@@ -18,8 +18,15 @@ function TooltipCurrency({ active, payload, label }: { active?: boolean; payload
   )
 }
 
+const SLIDERS = [
+  { label: 'Contact Rate', field: 'contactRate' as const, min: 0.10, max: 0.70, step: 0.01 },
+  { label: 'Booking Rate', field: 'bookingRate' as const, min: 0.20, max: 0.80, step: 0.01 },
+  { label: 'Show Rate', field: 'showRate' as const, min: 0.40, max: 0.90, step: 0.01 },
+  { label: 'Treatment Conversion', field: 'treatmentConversion' as const, min: 0.30, max: 0.80, step: 0.01 },
+]
+
 export default function DashboardPage() {
-  const { assumptions } = useModelStore()
+  const { assumptions, updateAssumption } = useModelStore()
   const metrics = useMemo(() => calcKeyMetrics(assumptions), [assumptions])
 
   const chartData = useMemo(() => [
@@ -48,6 +55,40 @@ export default function DashboardPage() {
         >
           CuraVein&trade; Referral Financial Model
         </a>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-[#5faaa6] mb-4">Conversion Rate Controls</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            {SLIDERS.map(({ label, field, min, max, step }) => {
+              const vals = assumptions[field] as { conservative: number; base: number; aggressive: number }
+              const current = vals[assumptions.scenario]
+              return (
+                <div key={field}>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs text-gray-400">{label}</span>
+                    <span className="text-xs font-mono text-[#5faaa6]">{fmtPct(current)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    step={step}
+                    value={current}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value)
+                      updateAssumption(field, { ...vals, [assumptions.scenario]: v })
+                    }}
+                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-gray-700 accent-[#5faaa6]"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                    <span>{(min * 100).toFixed(0)}%</span>
+                    <span>{(max * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <KpiCard label="Avg Monthly Procedures" value={fmtDecimal(metrics.avgMonthlyProcs, 1)} sub="Y1 average" />
