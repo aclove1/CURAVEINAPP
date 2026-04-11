@@ -39,6 +39,16 @@ export default function DashboardPage() {
       <TopBar title="Dashboard — Key Metrics Snapshot" />
       <div className="p-6 space-y-6">
 
+        <a
+          href="https://curavein.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors hover:opacity-90"
+          style={{ backgroundColor: '#5faaa6' }}
+        >
+          CuraVein&trade; Referral Financial Model
+        </a>
+
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <KpiCard label="Avg Monthly Procedures" value={fmtDecimal(metrics.avgMonthlyProcs, 1)} sub="Y1 average" />
           <KpiCard label="Revenue / Procedure" value={fmtCurrency(metrics.revenuePerProc, false)} sub="Gross blended" />
