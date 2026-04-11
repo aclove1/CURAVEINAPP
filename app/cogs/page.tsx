@@ -74,7 +74,7 @@ export default function CogsPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{ background: '#1a1a2e', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#ffffff' }}
                   formatter={(v: unknown) => [fmtCurrency(v as number), '']}
                 />
                 <Legend wrapperStyle={{ fontSize: 11, color: '#9ca3af' }} />

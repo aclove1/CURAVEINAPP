@@ -118,7 +118,7 @@ export default function FunnelPage() {
               <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: '#1a1a2e', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#ffffff' }}
                 labelStyle={{ color: '#9ca3af' }}
               />
               <Legend wrapperStyle={{ fontSize: 11, color: '#9ca3af' }} />
@@ -138,7 +138,7 @@ export default function FunnelPage() {
                 <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                 <Tooltip
-                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{ background: '#1a1a2e', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#ffffff' }}
                   formatter={(v: unknown) => [`${v}%`, 'Utilization']}
                 />
                 <Bar dataKey="utilization" radius={[3, 3, 0, 0]}>
@@ -158,7 +158,7 @@ export default function FunnelPage() {
                 <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{ background: '#1a1a2e', border: '1px solid #374151', borderRadius: 8, fontSize: 12, color: '#ffffff' }}
                   formatter={(v: unknown) => [v as number, 'Excess Demand']}
                 />
                 <Line type="monotone" dataKey="excessDemand" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#f59e0b' }} />
