@@ -10,6 +10,8 @@ import { calcRevenueMonth, calcAnnualPL, calcOverallBlendedRate } from '@/lib/mo
 import { fmtCurrency, fmtNumber, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
+import { TooltipInfo } from '@/components/ui/TooltipInfo'
+import { getCitationById } from '@/lib/citations'
 
 export default function RevenuePage() {
   const { assumptions } = useModelStore()
@@ -47,8 +49,8 @@ export default function RevenuePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KpiCard label="Y1 Total Gross Revenue" value={fmtCurrency(totalGross)} highlight />
           <KpiCard label="Avg Revenue / Month" value={fmtCurrency(avgPerMonth)} />
-          <KpiCard label="Blended Rate / Procedure" value={fmtCurrency(blendedRate, false)} />
-          <KpiCard label="Avg Revenue / Procedure" value={fmtCurrency(avgPerProc, false)} />
+          <KpiCard label={<>Blended Rate / Procedure <TooltipInfo text={getCitationById('revenuePerProcedure')?.rationale ?? ''} href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(blendedRate, false)} />
+          <KpiCard label={<>Avg Revenue / Procedure <TooltipInfo text={getCitationById('revenuePerProcedure')?.rationale ?? ''} href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(avgPerProc, false)} />
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">

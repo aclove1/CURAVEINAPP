@@ -9,6 +9,7 @@ import { KpiCard } from '@/components/ui/KpiCard'
 import { DEFAULT_ASSUMPTIONS } from '@/lib/defaults'
 import type { Assumptions, PayerWeights, ProcedurePayerRates } from '@/lib/types'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
+import { getCitationById } from '@/lib/citations'
 
 function NumberInput({
   value,
@@ -303,8 +304,8 @@ export default function ScenarioPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <KpiCard label="Avg Monthly Procedures" value={fmtDecimal(metrics.avgMonthlyProcs, 1)} sub="Live preview" />
-          <KpiCard label="Revenue / Procedure" value={fmtCurrency(metrics.revenuePerProc, false)} />
-          <KpiCard label="COGS / Procedure" value={fmtCurrency(metrics.cogsPerProc, false)} />
+          <KpiCard label={<>Revenue / Procedure <TooltipInfo text={getCitationById('revenuePerProcedure')?.rationale ?? ''} href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(metrics.revenuePerProc, false)} />
+          <KpiCard label={<>COGS / Procedure <TooltipInfo text={getCitationById('cogsPerProcedure')?.rationale ?? ''} href="/citations?highlight=cogsPerProcedure" /></>} value={fmtCurrency(metrics.cogsPerProc, false)} />
           <KpiCard label="Stabilized EBITDA" value={fmtCurrency(metrics.stabilizedMonthlyEbitda)} highlight={metrics.stabilizedMonthlyEbitda > 0} />
           <KpiCard label="Y1 Total Revenue" value={fmtCurrency(metrics.y1TotalRevenue)} />
           <KpiCard label="Breakeven Month" value={metrics.breakevenMonth ? `Month ${metrics.breakevenMonth}` : 'N/A'} />
@@ -329,7 +330,7 @@ export default function ScenarioPage() {
             updateAssumption('treatmentConversion', d.treatmentConversion)
             updateAssumption('procsPerPatient', d.procsPerPatient)
           }}>
-            <ScenarioRow label="Cost Per Lead ($)" field="cpl" prefix="$" />
+            <ScenarioRow label={<>Cost Per Lead ($) <TooltipInfo text={getCitationById('cpl')?.rationale ?? ''} href="/citations?highlight=cpl" /></>} field="cpl" prefix="$" />
             <ScenarioRow label="Contact Rate" field="contactRate" isPercent tooltip={{ text: 'Phone leads convert 25\u201340%; <5 min response increases conversion 21\u00d7', href: 'https://www.invoca.com/reports/the-invoca-call-conversion-benchmarks-report-for-the-healthcare-industry-2025' }} />
             <ScenarioRow label="Booking Rate" field="bookingRate" isPercent tooltip={{ text: '~54% booking rate from contacted leads', href: 'https://www.venatorpm.com/vein-and-vascular-marketing' }} />
             <ScenarioRow label="Show Rate" field="showRate" isPercent tooltip={{ text: 'Healthcare no-show ~18\u201325%', href: 'https://finturf.com/blog/reduce-patient-no-shows/' }} />
@@ -443,8 +444,8 @@ export default function ScenarioPage() {
             updateAssumption('y2VolumeGrowth', d.y2VolumeGrowth)
             updateAssumption('y3VolumeGrowth', d.y3VolumeGrowth)
           }}>
-            <ScenarioRow label="Y2 Volume Growth" field="y2VolumeGrowth" isPercent tooltip={{ text: 'Endovenous ablation market grew 107% (2010\u20132018). National CAGR projected at 6.8% through 2030.', href: 'https://www.grandviewresearch.com/industry-analysis/varicose-vein-treatment-market' }} />
-            <ScenarioRow label="Y3 Volume Growth" field="y3VolumeGrowth" isPercent tooltip={{ text: 'Endovenous ablation market grew 107% (2010\u20132018). National CAGR projected at 6.8% through 2030.', href: 'https://www.grandviewresearch.com/industry-analysis/varicose-vein-treatment-market' }} />
+            <ScenarioRow label={<>Y2 Volume Growth <TooltipInfo text={getCitationById('y2GrowthRate')?.rationale ?? ''} href="/citations?highlight=y2GrowthRate" /></>} field="y2VolumeGrowth" isPercent />
+            <ScenarioRow label={<>Y3 Volume Growth <TooltipInfo text={getCitationById('y3GrowthRate')?.rationale ?? ''} href="/citations?highlight=y3GrowthRate" /></>} field="y3VolumeGrowth" isPercent />
           </SectionTable>
 
           <PayerMixSection />

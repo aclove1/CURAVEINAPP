@@ -38,7 +38,7 @@ export const CITATIONS: Citation[] = [
   {
     id: 'proceduresPerPatient',
     assumption: 'Procedures per Patient',
-    value: '2.5',
+    value: '2.9',
     rationale: 'Bilateral disease common; 2\u20134 CPT codes per encounter',
     link: 'https://pubmed.ncbi.nlm.nih.gov/10396491/',
   },
@@ -68,6 +68,34 @@ export const CITATIONS: Citation[] = [
     assumption: 'Fixed OpEx',
     value: '$706K/year',
     rationale: 'Staffing + rent + overhead',
+    link: '#',
+  },
+  {
+    id: 'cpl',
+    assumption: 'Cost Per Lead',
+    value: '$50',
+    rationale: 'Meta/Google DTC benchmarks for medical aesthetics',
+    link: 'https://www.invoca.com/reports/the-invoca-call-conversion-benchmarks-report-for-the-healthcare-industry-2025',
+  },
+  {
+    id: 'marketGrowthCagr',
+    assumption: 'Market Growth CAGR',
+    value: '6.8% CAGR',
+    rationale: 'Endovenous ablation grew 107% 2010\u20132018; projected 6.8% CAGR through 2030',
+    link: 'https://www.grandviewresearch.com/industry-analysis/varicose-vein-treatment-market',
+  },
+  {
+    id: 'y2GrowthRate',
+    assumption: 'Y2 Conversion Improvement',
+    value: '10%',
+    rationale: 'Conservative year-over-year conversion rate improvement as operations mature and referral network builds',
+    link: '#',
+  },
+  {
+    id: 'y3GrowthRate',
+    assumption: 'Y3 Conversion Improvement',
+    value: '15%',
+    rationale: 'Accelerated improvement in Y3 as brand recognition and referral volume compound',
     link: '#',
   },
 ]

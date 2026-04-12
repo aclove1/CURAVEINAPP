@@ -6,6 +6,8 @@ import { calcOverallBlendedRate } from '@/lib/model'
 import { fmtCurrency, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
+import { TooltipInfo } from '@/components/ui/TooltipInfo'
+import { getCitationById } from '@/lib/citations'
 import { CPT_CODES } from '@/lib/defaults'
 
 type CapacityLevel = '50' | '100'
@@ -148,7 +150,7 @@ export default function CPTPage() {
           <KpiCard label="Total Procedure Revenue" value={fmtCurrency(totalProcRev)} highlight />
           <KpiCard label="Total E&M Revenue" value={fmtCurrency(totalEmRev)} />
           <KpiCard label="Combined Annual Revenue" value={fmtCurrency(totalRev)} highlight />
-          <KpiCard label="Blended Rate / Procedure" value={fmtCurrency(blendedRate, false)} />
+          <KpiCard label={<>Blended Rate / Procedure <TooltipInfo text={getCitationById('revenuePerProcedure')?.rationale ?? ''} href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(blendedRate, false)} />
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">

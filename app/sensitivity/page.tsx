@@ -4,6 +4,8 @@ import { useMemo } from 'react'
 import { useModelStore } from '@/lib/store'
 import { calcFunnelMonth } from '@/lib/model'
 import { TopBar } from '@/components/layout/TopBar'
+import { TooltipInfo } from '@/components/ui/TooltipInfo'
+import { getCitationById } from '@/lib/citations'
 
 function heatColor(procs: number): string {
   if (procs <= 0) return '#1f2937'
@@ -20,7 +22,7 @@ function textColor(procs: number): string {
 }
 
 interface HeatmapTableProps {
-  title: string
+  title: React.ReactNode
   subtitle: string
   rowLabel: string
   colLabel: string
@@ -157,7 +159,7 @@ export default function SensitivityPage() {
         </div>
 
         <HeatmapTable
-          title="Table 1: Contact Rate × Treatment Conversion → Procedures"
+          title={<>Table 1: Contact Rate <TooltipInfo text={getCitationById('contactRate')?.rationale ?? ''} href="/citations?highlight=contactRate" /> × Treatment Conversion <TooltipInfo text={getCitationById('treatmentRate')?.rationale ?? ''} href="/citations?highlight=treatmentRate" /> → Procedures</>}
           subtitle="Booking rate & show rate held at base scenario values"
           rowLabel="Contact Rate"
           colLabel="Treatment Conv"
@@ -169,7 +171,7 @@ export default function SensitivityPage() {
         />
 
         <HeatmapTable
-          title="Table 2: Booking Rate × Show Rate → Procedures"
+          title={<>Table 2: Booking Rate <TooltipInfo text={getCitationById('bookingRate')?.rationale ?? ''} href="/citations?highlight=bookingRate" /> × Show Rate <TooltipInfo text={getCitationById('showRate')?.rationale ?? ''} href="/citations?highlight=showRate" /> → Procedures</>}
           subtitle="Contact rate & treatment conversion held at base scenario values"
           rowLabel="Booking Rate"
           colLabel="Show Rate"
@@ -181,7 +183,7 @@ export default function SensitivityPage() {
         />
 
         <HeatmapTable
-          title="Table 3: CPL × Monthly Marketing Spend → Procedures"
+          title={<>Table 3: CPL <TooltipInfo text={getCitationById('cpl')?.rationale ?? ''} href="/citations?highlight=cpl" /> × Monthly Marketing Spend → Procedures</>}
           subtitle="Funnel conversion rates held at base scenario; all other assumptions held constant"
           rowLabel="CPL ($)"
           colLabel="Mktg Spend ($)"

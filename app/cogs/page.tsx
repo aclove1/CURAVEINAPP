@@ -7,6 +7,8 @@ import { calcCOGSMonth, calcWeightedSupplyCost, calcRevenueMonth, calcVarithenaC
 import { fmtCurrency, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
+import { TooltipInfo } from '@/components/ui/TooltipInfo'
+import { getCitationById } from '@/lib/citations'
 
 const DONUT_COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b']
 
@@ -58,8 +60,8 @@ export default function CogsPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KpiCard label="Total Y1 Supply COGS" value={fmtCurrency(totalCOGS)} />
-          <KpiCard label="COGS / Procedure" value={fmtCurrency(cogsPerProc, false)} />
-          <KpiCard label="Weighted Supply Cost" value={fmtCurrency(weightedCost, false)} sub="per procedure" />
+          <KpiCard label={<>COGS / Procedure <TooltipInfo text={getCitationById('cogsPerProcedure')?.rationale ?? ''} href="/citations?highlight=cogsPerProcedure" /></>} value={fmtCurrency(cogsPerProc, false)} />
+          <KpiCard label={<>Weighted Supply Cost <TooltipInfo text={getCitationById('cogsPerProcedure')?.rationale ?? ''} href="/citations?highlight=cogsPerProcedure" /></>} value={fmtCurrency(weightedCost, false)} sub="per procedure" />
           <KpiCard label="Gross Margin (post-COGS)" value={fmtPct((totalNetRev - totalCOGS) / totalNetRev)} highlight />
         </div>
 
