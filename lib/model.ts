@@ -11,6 +11,7 @@ import type {
   AnnualPL,
   KeyMetrics,
 } from './types'
+import { MARKET_PAYER_MIX } from './defaults'
 
 function sv(obj: { conservative: number; base: number; aggressive: number }, scenario: string): number {
   return obj[scenario as keyof typeof obj]
@@ -20,7 +21,7 @@ function svArr(obj: { conservative: number[]; base: number[]; aggressive: number
   return obj[scenario as keyof typeof obj]
 }
 
-/* ── Step 4 — Normalization + Safety Utilities ───────────── */
+/* ── Utilities ────────────────────────────────────────────── */
 
 export function normalizeWeights<T extends Record<string, number>>(obj: T): T {
   const sum = Object.values(obj).reduce((a, b) => a + b, 0)
@@ -38,9 +39,23 @@ export function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-/* ── Mix normalization ────────────────────────────────────── */
+/* ── FIX 2 — Credentialing ramp payer mix override ────────── */
 
-export function normalizeProcedureMix(a: Assumptions): { vs: number; rf: number; sclero: number; varithena: number } {
+function getCredentialingMix(month: number, a: Assumptions): { govMix: number; commMix: number } {
+  const marketMix = MARKET_PAYER_MIX[a.market] ?? MARKET_PAYER_MIX.newBraunfels
+  if (month <= 3) return { govMix: 0.60, commMix: 0.40 }
+  if (month <= 6) return { govMix: 0.40, commMix: 0.60 }
+  return { govMix: marketMix.government, commMix: marketMix.commercial }
+}
+
+/* ── FIX 7 — Varithena toggle: effective procedure mix ────── */
+
+export function effectiveProcedureMix(a: Assumptions): { vs: number; rf: number; sclero: number; varithena: number } {
+  if (!a.varithenaEnabled || a.varithenaShare <= 0) {
+    const sum = a.vsMix + a.rfMix + a.scleroMix
+    if (sum === 0) return { vs: 0.33, rf: 0.33, sclero: 0.34, varithena: 0 }
+    return { vs: a.vsMix / sum, rf: a.rfMix / sum, sclero: a.scleroMix / sum, varithena: 0 }
+  }
   const mix: ProcedureMix = { vsMix: a.vsMix, rfMix: a.rfMix, scleroMix: a.scleroMix, varithenaShare: a.varithenaShare }
   const norm = normalizeWeights(mix)
   return { vs: norm.vsMix, rf: norm.rfMix, sclero: norm.scleroMix, varithena: norm.varithenaShare }
@@ -63,10 +78,9 @@ export function getBlendedPayerRate(rates: ProcedurePayerRates, mix: PayerWeight
   )
 }
 
-/* ── Step 5 — Varithena blended rate (three-step) ────────── */
+/* ── Varithena blended rate (three-step) ─────────────────── */
 
 export function calcVarithenaBlendedRate(a: Assumptions): number {
-  // STEP A — payer-weight CPT 36465
   const blended36465: number =
     (a.varithenaRates36465.aetna    * a.payerMix.aetna)   +
     (a.varithenaRates36465.bcbs     * a.payerMix.bcbs)    +
@@ -74,7 +88,6 @@ export function calcVarithenaBlendedRate(a: Assumptions): number {
     (a.varithenaRates36465.uhc      * a.payerMix.uhc)     +
     (a.varithenaRates36465.medicare * a.payerMix.medicare)
 
-  // STEP B — payer-weight CPT 36466
   const blended36466: number =
     (a.varithenaRates36466.aetna    * a.payerMix.aetna)   +
     (a.varithenaRates36466.bcbs     * a.payerMix.bcbs)    +
@@ -82,13 +95,10 @@ export function calcVarithenaBlendedRate(a: Assumptions): number {
     (a.varithenaRates36466.uhc      * a.payerMix.uhc)     +
     (a.varithenaRates36466.medicare * a.payerMix.medicare)
 
-  // STEP C — CPT-weight the two blended values
-  const varithenaBlendedRate: number = (blended36465 * 0.7) + (blended36466 * 0.3)
-
-  return varithenaBlendedRate
+  return (blended36465 * 0.7) + (blended36466 * 0.3)
 }
 
-/* ── Step 6 — Varithena cost ──────────────────────────────── */
+/* ── Varithena cost ───────────────────────────────────────── */
 
 export function calcVarithenaCostPerProc(a: Assumptions): number {
   const sclerotherapyCost = a.scleroSupplyCost * (1 + a.scleroBuffer) * (1 + a.wasteFactor)
@@ -113,15 +123,23 @@ export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
   return { month, leads, contacts, booked, shows, treated, rawProcs, cappedProcs, utilization, excessDemand, marketingSpend: spend }
 }
 
+/* ── FIX 10 — BCBS-separated blended commercial multiplier ── */
+
+function blendedCommercialMultiplier(a: Assumptions): number {
+  const bcbsShare = a.bcbsShareOfCommercial
+  const otherShare = 1 - bcbsShare
+  return bcbsShare * a.bcbsMultiplier + otherShare * a.otherCommercialMultiplier
+}
+
 /* ── Weighted fee schedule blended rate ────────────────────── */
 
 const FEE_SCHEDULE = [
-  { code: '36475', medicareFee: 4309, volumeShare: 0.30 },  // VNUS RFA
-  { code: '36482', medicareFee: 4403, volumeShare: 0.15 },  // VenaSeal
-  { code: '36465', medicareFee: 1232, volumeShare: 0.20 },  // Varithena
-  { code: '36466', medicareFee: 1291, volumeShare: 0.10 },  // Varithena 2+
-  { code: '93970', medicareFee: 379,  volumeShare: 0.15 },  // BIL U/S
-  { code: '93971', medicareFee: 264,  volumeShare: 0.10 },  // UNI U/S
+  { code: '36475', medicareFee: 4309, volumeShare: 0.30 },
+  { code: '36482', medicareFee: 4403, volumeShare: 0.15 },
+  { code: '36465', medicareFee: 1232, volumeShare: 0.20 },
+  { code: '36466', medicareFee: 1291, volumeShare: 0.10 },
+  { code: '93970', medicareFee: 379,  volumeShare: 0.15 },
+  { code: '93971', medicareFee: 264,  volumeShare: 0.10 },
 ]
 
 export function calcWeightedMedicareBase(): number {
@@ -130,8 +148,17 @@ export function calcWeightedMedicareBase(): number {
 
 export function calcOverallBlendedRate(a: Assumptions): number {
   const medicareBase = calcWeightedMedicareBase()
-  const multiplier = sv(a.commercialMultiplier, a.scenario)
-  return Math.round(medicareBase * (a.medicareMix + a.commercialMix * multiplier))
+  const commMultiplier = blendedCommercialMultiplier(a)
+  return Math.round(medicareBase * (a.medicareMix + a.commercialMix * commMultiplier))
+}
+
+/* ── FIX 2 — Month-specific blended rate with credentialing ── */
+
+function calcMonthBlendedRate(month: number, a: Assumptions): number {
+  const medicareBase = calcWeightedMedicareBase()
+  const commMultiplier = blendedCommercialMultiplier(a)
+  const { govMix, commMix } = getCredentialingMix(month, a)
+  return Math.round(medicareBase * (govMix + commMix * commMultiplier))
 }
 
 /* ── Revenue ──────────────────────────────────────────────── */
@@ -139,21 +166,23 @@ export function calcOverallBlendedRate(a: Assumptions): number {
 export function calcRevenueMonth(month: number, a: Assumptions): RevenueMonth {
   const funnel = calcFunnelMonth(month, a)
   const procs = funnel.cappedProcs
-  const blendedRate = calcOverallBlendedRate(a)
+  const blendedRate = calcMonthBlendedRate(month, a)
+  const { govMix, commMix } = getCredentialingMix(month, a)
   const medicareRate = sv(a.medicareRate, a.scenario)
-  const commercialRate = Math.round(medicareRate * sv(a.commercialMultiplier, a.scenario))
+  const commMultiplier = blendedCommercialMultiplier(a)
+  const commercialRate = Math.round(medicareRate * commMultiplier)
   const grossRevenue = procs * blendedRate
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
   const netRevenue = grossRevenue + managementFee
-  const medicareRevenue = Math.round(procs * a.medicareMix * medicareRate)
-  const commercialRevenue = Math.round(procs * a.commercialMix * commercialRate)
+  const medicareRevenue = Math.round(procs * govMix * medicareRate)
+  const commercialRevenue = Math.round(procs * commMix * commercialRate)
   return { month, blendedRate, grossRevenue, managementFee, netRevenue, medicareRevenue, commercialRevenue, procs }
 }
 
 /* ── COGS ─────────────────────────────────────────────────── */
 
 export function calcWeightedSupplyCost(a: Assumptions): number {
-  const mix = normalizeProcedureMix(a)
+  const mix = effectiveProcedureMix(a)
   const venasealPerProc = (a.venasealUnitCost / a.venasealPtsPerKit) * (1 + a.wasteFactor)
   const rfPerProc = a.rfSupplyCost * (1 + a.wasteFactor)
   const scleroPerProc = a.scleroSupplyCost * (1 + a.scleroBuffer) * (1 + a.wasteFactor)
@@ -171,7 +200,7 @@ export function calcWeightedSupplyCost(a: Assumptions): number {
 export function calcCOGSMonth(month: number, a: Assumptions): COGSMonth {
   const funnel = calcFunnelMonth(month, a)
   const procs = funnel.cappedProcs
-  const mix = normalizeProcedureMix(a)
+  const mix = effectiveProcedureMix(a)
   const venasealCost = Math.round(procs * mix.vs * (a.venasealUnitCost / a.venasealPtsPerKit) * (1 + a.wasteFactor))
   const rfCost = Math.round(procs * mix.rf * a.rfSupplyCost * (1 + a.wasteFactor))
   const scleroCost = Math.round(procs * mix.sclero * a.scleroSupplyCost * (1 + a.scleroBuffer) * (1 + a.wasteFactor))
@@ -250,8 +279,6 @@ function boostScenarioValues(
 
 export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assumptions {
   if (year === 1) return a
-
-  // Y2: 10% improvement on Y1 base rates
   const y2 = {
     ...a,
     contactRate: boostScenarioValues(a.contactRate, Y2_IMPROVEMENT, CONVERSION_CAPS.contactRate),
@@ -260,8 +287,6 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
     treatmentConversion: boostScenarioValues(a.treatmentConversion, Y2_IMPROVEMENT, CONVERSION_CAPS.treatmentConversion),
   }
   if (year === 2) return y2
-
-  // Y3: 15% improvement on top of Y2 rates
   return {
     ...y2,
     contactRate: boostScenarioValues(y2.contactRate, Y3_IMPROVEMENT, CONVERSION_CAPS.contactRate),
@@ -271,11 +296,10 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
   }
 }
 
-/* ── Step 8 — Annual P&L (funnel-driven) ─────────────────── */
+/* ── Annual P&L (funnel-driven) ───────────────────────────── */
 
 export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
   const FIXED_OPEX = 706000
-
   const adj = adjustAssumptionsForYear(year, a)
 
   let totalProcs = 0
@@ -296,22 +320,6 @@ export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
   const totalOpex = FIXED_OPEX
   const ebitda = roundCurrency(grossRevenue - totalCOGS - FIXED_OPEX)
   const ebitdaMargin = netRevenue > 0 ? ebitda / netRevenue : 0
-
-  console.group(`[CuraVein Diag] calcAnnualPL — Y${year}`)
-  console.log('Conversion rates (funnel-driven):')
-  console.log('  contactRate:', sv(adj.contactRate, adj.scenario).toFixed(4))
-  console.log('  bookingRate:', sv(adj.bookingRate, adj.scenario).toFixed(4))
-  console.log('  showRate:', sv(adj.showRate, adj.scenario).toFixed(4))
-  console.log('  treatmentConversion:', sv(adj.treatmentConversion, adj.scenario).toFixed(4))
-  console.log('  procsPerPatient:', sv(adj.procsPerPatient, adj.scenario))
-  if (year >= 2) console.log('  Y2 improvement: +10%, caps:', JSON.stringify(CONVERSION_CAPS))
-  if (year === 3) console.log('  Y3 improvement: +15% on Y2 rates, same caps')
-  console.log('Volume (from funnel):')
-  console.log('  totalProcs:', totalProcs, ' monthlyAvg:', (totalProcs / 12).toFixed(1))
-  console.log('  grossRevenue:', grossRevenue)
-  console.log('  totalCOGS:', totalCOGS)
-  console.log('  EBITDA:', ebitda)
-  console.groupEnd()
 
   return { year, grossRevenue, managementFee, netRevenue, totalCOGS, grossProfit, grossMargin, totalOpex, ebitda, ebitdaMargin, totalProcs }
 }
@@ -337,7 +345,9 @@ export function calcBreakeven(a: Assumptions): { monthlyBreakevenProcs: number; 
   if (breakevenMonth === null) {
     for (let m = 13; m <= 36; m++) {
       const baseMonth = ((m - 1) % 12) + 1
-      const pl = calcPLMonth(baseMonth, a)
+      const yr = m <= 12 ? 1 : m <= 24 ? 2 : 3
+      const adj = adjustAssumptionsForYear(yr as 1 | 2 | 3, a)
+      const pl = calcPLMonth(baseMonth, adj)
       cumulativeProfit += pl.ebitda
       if (cumulativeProfit > 0) { breakevenMonth = m; break }
     }
@@ -354,6 +364,7 @@ export function calcKeyMetrics(a: Assumptions): KeyMetrics {
   let totalCOGS = 0
   let totalMarketing = 0
   let totalTreated = 0
+  let monthsAtCapacity = 0
   const monthlyEbitdas: number[] = []
 
   for (let m = 1; m <= 12; m++) {
@@ -365,6 +376,7 @@ export function calcKeyMetrics(a: Assumptions): KeyMetrics {
     totalMarketing += funnel.marketingSpend
     totalTreated += funnel.treated
     monthlyEbitdas.push(pl.ebitda)
+    if (funnel.cappedProcs >= a.maxCapacityPerMonth) monthsAtCapacity++
   }
 
   const avgMonthlyProcs = totalProcs / 12
@@ -393,14 +405,62 @@ export function calcKeyMetrics(a: Assumptions): KeyMetrics {
     y1TotalRevenue: y1.grossRevenue,
     y1TotalProcs: y1.totalProcs,
     y2TotalRevenue: y2.grossRevenue,
+    y2TotalProcs: y2.totalProcs,
     y3TotalRevenue: y3.grossRevenue,
+    y3TotalProcs: y3.totalProcs,
     y1Ebitda: y1.ebitda,
     y2Ebitda: y2.ebitda,
     y3Ebitda: y3.ebitda,
+    monthsAtCapacity,
   }
 }
 
-/* ── Step 10 — Validation ─────────────────────────────────── */
+/* ── Funnel Bridge (FIX 5) ────────────────────────────────── */
+
+export interface FunnelBridge {
+  leads: { monthlyAvg: number; annual: number }
+  contacts: { monthlyAvg: number; annual: number; rate: number }
+  booked: { monthlyAvg: number; annual: number; rate: number }
+  shows: { monthlyAvg: number; annual: number; rate: number }
+  treated: { monthlyAvg: number; annual: number; rate: number }
+  procedures: { monthlyAvg: number; annual: number; rate: number }
+  revenue: { monthlyAvg: number; annual: number }
+  plProcsMatch: boolean
+  plRevenueMatch: boolean
+}
+
+export function calcFunnelBridge(a: Assumptions): FunnelBridge {
+  let leads = 0, contacts = 0, booked = 0, shows = 0, treated = 0, procs = 0, revenue = 0
+  let plProcs = 0, plRevenue = 0
+
+  for (let m = 1; m <= 12; m++) {
+    const f = calcFunnelMonth(m, a)
+    const pl = calcPLMonth(m, a)
+    leads += f.leads
+    contacts += f.contacts
+    booked += f.booked
+    shows += f.shows
+    treated += f.treated
+    procs += f.cappedProcs
+    revenue += pl.grossRevenue
+    plProcs += pl.procs
+    plRevenue += pl.grossRevenue
+  }
+
+  return {
+    leads: { monthlyAvg: leads / 12, annual: leads },
+    contacts: { monthlyAvg: contacts / 12, annual: contacts, rate: leads > 0 ? contacts / leads : 0 },
+    booked: { monthlyAvg: booked / 12, annual: booked, rate: contacts > 0 ? booked / contacts : 0 },
+    shows: { monthlyAvg: shows / 12, annual: shows, rate: booked > 0 ? shows / booked : 0 },
+    treated: { monthlyAvg: treated / 12, annual: treated, rate: shows > 0 ? treated / shows : 0 },
+    procedures: { monthlyAvg: procs / 12, annual: procs, rate: treated > 0 ? procs / treated : 0 },
+    revenue: { monthlyAvg: revenue / 12, annual: revenue },
+    plProcsMatch: procs === plProcs,
+    plRevenueMatch: revenue === plRevenue,
+  }
+}
+
+/* ── Validation ───────────────────────────────────────────── */
 
 export function validateFinancialModel(params: {
   procedureMix: ProcedureMix
@@ -411,29 +471,17 @@ export function validateFinancialModel(params: {
   ebitda: number
   breakevenProcedures: number
 }): void {
-  const mixSum =
-    params.procedureMix.vsMix +
-    params.procedureMix.rfMix +
-    params.procedureMix.scleroMix +
-    params.procedureMix.varithenaShare
-
-  const payerSum =
-    params.payerMix.aetna +
-    params.payerMix.bcbs +
-    params.payerMix.humana +
-    params.payerMix.uhc +
-    params.payerMix.medicare
-
+  const mixSum = params.procedureMix.vsMix + params.procedureMix.rfMix + params.procedureMix.scleroMix + params.procedureMix.varithenaShare
+  const payerSum = params.payerMix.aetna + params.payerMix.bcbs + params.payerMix.humana + params.payerMix.uhc + params.payerMix.medicare
   const checks: { label: string; pass: boolean }[] = [
-    { label: 'Procedure mix sums to 1.0',    pass: Math.abs(mixSum - 1.0) < 0.001 },
-    { label: 'Payer mix sums to 1.0',         pass: Math.abs(payerSum - 1.0) < 0.001 },
+    { label: 'Procedure mix sums to 1.0', pass: Math.abs(mixSum - 1.0) < 0.001 },
+    { label: 'Payer mix sums to 1.0', pass: Math.abs(payerSum - 1.0) < 0.001 },
     { label: 'varithenaBlendedRate is finite', pass: isFinite(params.varithenaBlendedRate) && !isNaN(params.varithenaBlendedRate) },
-    { label: 'totalRevenue is finite',         pass: isFinite(params.totalRevenue) },
-    { label: 'totalCOGS is finite',            pass: isFinite(params.totalCOGS) },
-    { label: 'ebitda is finite',               pass: isFinite(params.ebitda) },
-    { label: 'breakevenProcedures is finite',  pass: isFinite(params.breakevenProcedures) },
+    { label: 'totalRevenue is finite', pass: isFinite(params.totalRevenue) },
+    { label: 'totalCOGS is finite', pass: isFinite(params.totalCOGS) },
+    { label: 'ebitda is finite', pass: isFinite(params.ebitda) },
+    { label: 'breakevenProcedures is finite', pass: isFinite(params.breakevenProcedures) },
   ]
-
   checks.forEach(({ label, pass }) => {
     if (!pass) console.warn(`[CuraVein Model] VALIDATION FAILED: ${label}`)
   })

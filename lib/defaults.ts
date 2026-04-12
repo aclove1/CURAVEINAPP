@@ -1,7 +1,13 @@
-import type { Assumptions } from './types'
+import type { Assumptions, MarketPayerMix } from './types'
+
+export const MARKET_PAYER_MIX: Record<string, MarketPayerMix> = {
+  newBraunfels: { government: 0.25, commercial: 0.75 },
+  forney: { government: 0.15, commercial: 0.85 },
+}
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   scenario: 'base',
+  market: 'newBraunfels',
   cpl: { conservative: 75, base: 50, aggressive: 40 },
   contactRate: { conservative: 0.25, base: 0.35, aggressive: 0.45 },
   bookingRate: { conservative: 0.44, base: 0.54, aggressive: 0.64 },
@@ -11,8 +17,11 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   maxCapacityPerMonth: 120,
   medicareRate: { conservative: 1450, base: 1600, aggressive: 1750 },
   commercialMultiplier: { conservative: 1.35, base: 1.5, aggressive: 1.65 },
-  medicareMix: 0.20,
-  commercialMix: 0.80,
+  bcbsMultiplier: 1.35,
+  otherCommercialMultiplier: 1.48,
+  bcbsShareOfCommercial: 0.20,
+  medicareMix: 0.25,
+  commercialMix: 0.75,
   wasteFactor: 0.075,
   miscConsumables: 15,
   postProcSupport: 17.50,
@@ -47,6 +56,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   varithenaRates36466: { aetna: 1420, bcbs: 1560, humana: 1380, uhc: 1490, medicare: 1400 },
   varithenaDrugCost: 300,
   payerMix: { aetna: 0.14, bcbs: 0.32, humana: 0.12, uhc: 0.18, medicare: 0.24 },
+  varithenaEnabled: true,
 }
 
 export const CPT_CODES = [

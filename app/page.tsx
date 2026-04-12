@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useModelStore } from '@/lib/store'
-import { calcKeyMetrics, calcAnnualPL } from '@/lib/model'
+import { calcKeyMetrics, calcAnnualPL, calcFunnelBridge } from '@/lib/model'
 import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
@@ -44,12 +44,26 @@ const SLIDERS = [
 export default function DashboardPage() {
   const { assumptions, updateAssumption } = useModelStore()
   const metrics = useMemo(() => calcKeyMetrics(assumptions), [assumptions])
+  const bridge = useMemo(() => calcFunnelBridge(assumptions), [assumptions])
 
-  const chartData = useMemo(() => [
-    { year: 'Year 1', ebitda: calcAnnualPL(1, assumptions).ebitda },
-    { year: 'Year 2', ebitda: calcAnnualPL(2, assumptions).ebitda },
-    { year: 'Year 3', ebitda: calcAnnualPL(3, assumptions).ebitda },
-  ], [assumptions])
+  const y1 = useMemo(() => calcAnnualPL(1, assumptions), [assumptions])
+  const y2 = useMemo(() => calcAnnualPL(2, assumptions), [assumptions])
+  const y3 = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
+
+  const chartData = [
+    { year: 'Year 1', ebitda: y1.ebitda },
+    { year: 'Year 2', ebitda: y2.ebitda },
+    { year: 'Year 3', ebitda: y3.ebitda },
+  ]
+
+  // FIX 9 — Tax and FCF
+  const capex = [150000, 50000, 50000]
+  const revenues = [y1.grossRevenue, y2.grossRevenue, y3.grossRevenue]
+  const ebitdas = [y1.ebitda, y2.ebitda, y3.ebitda]
+  const taxes = ebitdas.map(e => Math.max(0, e * 0.25))
+  const netIncomes = ebitdas.map((e, i) => e - taxes[i])
+  const deltaWC = revenues.map((r, i) => i === 0 ? r * 0.05 : (r - revenues[i - 1]) * 0.05)
+  const fcf = ebitdas.map((e, i) => e - capex[i] - deltaWC[i])
 
   const breakevenLabel = metrics.breakevenMonth
     ? metrics.breakevenMonth <= 12
@@ -59,7 +73,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <TopBar title="Dashboard — Key Metrics Snapshot" />
+      <TopBar title="Dashboard \u2014 Key Metrics Snapshot" />
       <div className="p-6 space-y-6">
 
         <a
@@ -111,12 +125,55 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          <KpiCard label="Avg Monthly Procedures" value={fmtDecimal(metrics.avgMonthlyProcs, 1)} sub="Y1 average" />
-          <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Derived from competitor fee schedule weighted by procedure volume mix across RFA, VenaSeal, Varithena, and ultrasound CPT codes" href="#" /></>} value={fmtCurrency(metrics.revenuePerProc, false)} sub="Gross blended" />
+          <KpiCard label="Avg Monthly Procedures" value={fmtDecimal(metrics.avgMonthlyProcs, 1)} sub={metrics.monthsAtCapacity > 0 ? `${metrics.monthsAtCapacity} mo AT CAPACITY` : 'Y1 average'} highlight={metrics.monthsAtCapacity > 0} />
+          <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Derived from competitor fee schedule weighted by procedure volume mix across RFA, VenaSeal, Varithena, and ultrasound CPT codes" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(metrics.revenuePerProc, false)} sub="Before 8% management fee" />
           <KpiCard label={<>COGS / Procedure <TooltipInfo text="VenaSeal (~$800 supply cost) + RF consumables (~$200) + misc consumables (~$100), blended by procedure mix" href="/citations?highlight=cogsPerProcedure" /></>} value={fmtCurrency(metrics.cogsPerProc, false)} sub="Supply costs" />
           <KpiCard label="Stabilized Monthly EBITDA" value={fmtCurrency(metrics.stabilizedMonthlyEbitda)} sub="Month 12" highlight={metrics.stabilizedMonthlyEbitda > 0} />
-          <KpiCard label="Revenue / Patient" value={fmtCurrency(metrics.revenuePerPatient, false)} sub="Gross" />
+          <KpiCard label="Revenue / Patient" value={fmtCurrency(metrics.revenuePerPatient, false)} sub="Before 8% management fee" />
           <KpiCard label="Cost Per Acquisition" value={fmtCurrency(metrics.costPerAcquisition, false)} sub="Marketing / treated" />
+        </div>
+
+        {/* FIX 5 — Funnel Bridge */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-800">
+            <h2 className="text-sm font-semibold text-[#5faaa6]">Y1 Funnel Bridge Reconciliation</h2>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium">Stage</th>
+                <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Monthly Avg</th>
+                <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Annual Total</th>
+                <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Conv Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { stage: 'Leads', avg: bridge.leads.monthlyAvg, total: bridge.leads.annual, rate: null },
+                { stage: 'Contacts', avg: bridge.contacts.monthlyAvg, total: bridge.contacts.annual, rate: bridge.contacts.rate },
+                { stage: 'Booked', avg: bridge.booked.monthlyAvg, total: bridge.booked.annual, rate: bridge.booked.rate },
+                { stage: 'Shows', avg: bridge.shows.monthlyAvg, total: bridge.shows.annual, rate: bridge.shows.rate },
+                { stage: 'Treated', avg: bridge.treated.monthlyAvg, total: bridge.treated.annual, rate: bridge.treated.rate },
+                { stage: 'Procedures', avg: bridge.procedures.monthlyAvg, total: bridge.procedures.annual, rate: bridge.procedures.rate },
+                { stage: 'Revenue', avg: bridge.revenue.monthlyAvg, total: bridge.revenue.annual, rate: null },
+              ].map((r, i) => (
+                <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                  <td className="px-5 py-2.5 text-gray-300 font-medium">{r.stage}</td>
+                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Revenue' ? fmtCurrency(r.avg) : fmtDecimal(r.avg, 1)}</td>
+                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Revenue' ? fmtCurrency(r.total) : fmtNumber(r.total)}</td>
+                  <td className="px-5 py-2.5 text-right text-gray-400">{r.rate !== null ? fmtPct(r.rate) : '\u2014'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-5 py-3 border-t border-gray-800 flex gap-6 text-xs">
+            <span className={bridge.plProcsMatch ? 'text-emerald-400' : 'text-red-400'}>
+              {bridge.plProcsMatch ? '\u2713' : '\u26A0'} Procedures match P&L: {bridge.plProcsMatch ? 'Yes' : 'MISMATCH'}
+            </span>
+            <span className={bridge.plRevenueMatch ? 'text-emerald-400' : 'text-red-400'}>
+              {bridge.plRevenueMatch ? '\u2713' : '\u26A0'} Revenue matches P&L: {bridge.plRevenueMatch ? 'Yes' : 'MISMATCH'}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -150,6 +207,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* FIX 9 — 3-Year Summary with Tax and FCF */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-gray-300">3-Year Summary</h2>
@@ -170,16 +228,21 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {[
-                { label: 'Gross Revenue', vals: [metrics.y1TotalRevenue, metrics.y2TotalRevenue, metrics.y3TotalRevenue], fmt: fmtCurrency },
-                { label: 'EBITDA', vals: [metrics.y1Ebitda, metrics.y2Ebitda, metrics.y3Ebitda], fmt: fmtCurrency },
-                { label: 'Total Procedures (Y1)', vals: [metrics.y1TotalProcs, null, null], fmt: (v: number | null) => v === null ? '\u2014' : fmtNumber(v) },
-              ].map((row, i) => (
-                <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+              {([
+                { label: 'Gross Revenue', vals: revenues },
+                { label: 'Total Procedures', vals: [y1.totalProcs, y2.totalProcs, y3.totalProcs] },
+                { label: 'EBITDA', vals: ebitdas },
+                { label: 'Tax (25% \u2014 adjust per entity structure)', vals: taxes },
+                { label: 'Net Income After Tax', vals: netIncomes },
+                { label: 'CapEx', vals: capex },
+                { label: '\u0394 Working Capital (5% of rev growth)', vals: deltaWC },
+                { label: 'Free Cash Flow', vals: fcf },
+              ] as { label: string; vals: number[] }[]).map((row, i) => (
+                <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${row.label === 'Free Cash Flow' ? 'bg-gray-800/20 font-semibold' : ''}`}>
                   <td className="px-5 py-3 text-gray-300">{row.label}</td>
                   {row.vals.map((v, j) => (
-                    <td key={j} className={`px-5 py-3 text-right font-medium ${v !== null && v < 0 ? 'text-red-400' : 'text-white'}`}>
-                      {v === null ? '\u2014' : row.fmt(v)}
+                    <td key={j} className={`px-5 py-3 text-right font-medium ${v < 0 ? 'text-red-400' : 'text-white'}`}>
+                      {row.label === 'Total Procedures' ? fmtNumber(v) : fmtCurrency(v)}
                     </td>
                   ))}
                 </tr>

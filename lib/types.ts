@@ -1,4 +1,5 @@
 export type Scenario = 'conservative' | 'base' | 'aggressive'
+export type Market = 'newBraunfels' | 'forney'
 
 export interface ScenarioValues<T = number> {
   conservative: T
@@ -36,8 +37,14 @@ export type VarithenaState = {
   varithenaRates36466: ProcedurePayerRates
 }
 
+export type MarketPayerMix = {
+  government: number
+  commercial: number
+}
+
 export interface Assumptions {
   scenario: Scenario
+  market: Market
   cpl: ScenarioValues
   contactRate: ScenarioValues
   bookingRate: ScenarioValues
@@ -47,6 +54,9 @@ export interface Assumptions {
   maxCapacityPerMonth: number
   medicareRate: ScenarioValues
   commercialMultiplier: ScenarioValues
+  bcbsMultiplier: number
+  otherCommercialMultiplier: number
+  bcbsShareOfCommercial: number
   medicareMix: number
   commercialMix: number
   wasteFactor: number
@@ -79,6 +89,7 @@ export interface Assumptions {
   varithenaRates36466: ProcedurePayerRates
   varithenaDrugCost: number
   payerMix: PayerWeights
+  varithenaEnabled: boolean
 }
 
 export interface FunnelMonth {
@@ -169,10 +180,13 @@ export interface KeyMetrics {
   y1TotalRevenue: number
   y1TotalProcs: number
   y2TotalRevenue: number
+  y2TotalProcs: number
   y3TotalRevenue: number
+  y3TotalProcs: number
   y1Ebitda: number
   y2Ebitda: number
   y3Ebitda: number
+  monthsAtCapacity: number
 }
 
 export interface CPTCode {

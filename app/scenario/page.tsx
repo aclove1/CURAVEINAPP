@@ -8,6 +8,7 @@ import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { DEFAULT_ASSUMPTIONS } from '@/lib/defaults'
 import type { Assumptions, PayerWeights, ProcedurePayerRates } from '@/lib/types'
+import { MARKET_PAYER_MIX } from '@/lib/defaults'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
 import { getCitationById } from '@/lib/citations'
 
@@ -311,7 +312,41 @@ export default function ScenarioPage() {
           <KpiCard label="Breakeven Month" value={metrics.breakevenMonth ? `Month ${metrics.breakevenMonth}` : 'N/A'} />
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center gap-4 justify-between">
+          {/* FIX 1 — Market Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Market:</span>
+            {(['newBraunfels', 'forney'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => {
+                  updateAssumption('market', m)
+                  const mix = MARKET_PAYER_MIX[m]
+                  updateAssumption('medicareMix', mix.government)
+                  updateAssumption('commercialMix', mix.commercial)
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  assumptions.market === m ? 'bg-[#5faaa6] text-white' : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {m === 'newBraunfels' ? 'New Braunfels' : 'Forney'}
+              </button>
+            ))}
+          </div>
+
+          {/* FIX 7 — Varithena Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Varithena Adoption:</span>
+            <button
+              onClick={() => updateAssumption('varithenaEnabled', !assumptions.varithenaEnabled)}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                assumptions.varithenaEnabled ? 'bg-[#5faaa6] text-white' : 'bg-gray-800 text-gray-400'
+              }`}
+            >
+              {assumptions.varithenaEnabled ? 'On' : 'Off'}
+            </button>
+          </div>
+
           <button
             onClick={resetToDefaults}
             className="px-4 py-2 text-sm bg-gray-800 text-gray-300 hover:bg-gray-700 rounded-lg border border-gray-700 transition-colors"
@@ -347,10 +382,14 @@ export default function ScenarioPage() {
             updateAssumption('commercialMix', d.commercialMix)
           }}>
             <ScenarioRow label={<>Medicare Rate ($) <a href="https://www.cms.gov/medicare/payment/fee-schedules" target="_blank" rel="noopener noreferrer" className="text-[#5faaa6] hover:text-[#7cc4c0] text-[10px] ml-0.5">&#8599;</a></>} field="medicareRate" prefix="$" />
-            <ScenarioRow label="Commercial Multiplier" field="commercialMultiplier" />
-            <SingleRow label="Medicare Mix" field="medicareMix" isPercent />
+            <ScenarioRow label="Commercial Multiplier (legacy)" field="commercialMultiplier" />
+            <SingleRow label="BCBS Multiplier" field="bcbsMultiplier" />
+            <SingleRow label="Other Commercial Multiplier" field="otherCommercialMultiplier" />
+            <SingleRow label="BCBS Share of Commercial" field="bcbsShareOfCommercial" isPercent />
+            <SingleRow label="Medicare/Gov Mix" field="medicareMix" isPercent />
             <SingleRow label="Commercial Mix" field="commercialMix" isPercent />
             <SingleRow label="Management Fee Rate" field="managementFeeRate" isPercent />
+            <tr><td colSpan={4} className="px-4 py-2 text-xs text-gray-500 italic">Credentialing ramp applied: full commercial access Month 7+</td></tr>
           </SectionTable>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
