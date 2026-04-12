@@ -24,13 +24,18 @@ const HEADER_CITATIONS: Record<string, string> = {
 function CitationIcon({ citationId }: { citationId: string }) {
   const router = useRouter()
   const [show, setShow] = useState(false)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
   const citation = getCitationById(citationId)
   if (!citation) return null
 
   return (
     <span
-      className="relative inline-flex items-center ml-1.5"
-      onMouseEnter={() => setShow(true)}
+      className="inline-flex items-center ml-1.5"
+      onMouseEnter={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        setPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 })
+        setShow(true)
+      }}
       onMouseLeave={() => setShow(false)}
     >
       <span
@@ -39,12 +44,14 @@ function CitationIcon({ citationId }: { citationId: string }) {
       >
         &#9432;
       </span>
-      {show && (
-        <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 w-56 rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-xs text-gray-300 shadow-lg pointer-events-none">
+      {show && pos && (
+        <span
+          className="fixed z-[9999] w-56 rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-xs text-gray-300 shadow-lg pointer-events-none"
+          style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
+        >
           <span className="font-mono text-[#5faaa6]">{citation.value}</span>
           <span className="text-gray-500"> — </span>
-          <span>{citation.rationale}</span>
-          <span className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-700" />
+          <span className="font-normal">{citation.rationale}</span>
         </span>
       )}
     </span>
@@ -108,6 +115,13 @@ export default function FunnelPage() {
     <div>
       <TopBar title="DTC Acquisition Funnel" />
       <div className="p-6 space-y-6">
+
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 border-l-4 border-l-[#5faaa6]">
+          <h3 className="text-white font-bold text-sm mb-1.5">The Funnel Is Everything</h3>
+          <p className="text-gray-300 text-sm leading-relaxed">
+            Every patient outcome begins with how well you get people in the door. From first contact through scheduling, consultation, and treatment — each conversion step compounds. A 5% improvement at every stage doubles your treated patient volume. <span className="italic">Script every touchpoint.</span>
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KpiCard label="Total Y1 Procedures" value={fmtNumber(totalProcs)} />

@@ -7,7 +7,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   bookingRate: { conservative: 0.44, base: 0.54, aggressive: 0.64 },
   showRate: { conservative: 0.65, base: 0.75, aggressive: 0.85 },
   treatmentConversion: { conservative: 0.55, base: 0.65, aggressive: 0.75 },
-  procsPerPatient: { conservative: 2.2, base: 2.5, aggressive: 2.8 },
+  procsPerPatient: { conservative: 2.5, base: 2.9, aggressive: 3.3 },
   maxCapacityPerMonth: 120,
   medicareRate: { conservative: 1450, base: 1600, aggressive: 1750 },
   commercialMultiplier: { conservative: 1.35, base: 1.5, aggressive: 1.65 },

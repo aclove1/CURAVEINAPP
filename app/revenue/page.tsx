@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, Line, ComposedChart, Legend
 } from 'recharts'
 import { useModelStore } from '@/lib/store'
-import { calcRevenueMonth, calcAnnualPL, calcBlendedRate } from '@/lib/model'
+import { calcRevenueMonth, calcAnnualPL, calcOverallBlendedRate } from '@/lib/model'
 import { fmtCurrency, fmtNumber, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
@@ -19,7 +19,7 @@ export default function RevenuePage() {
     [assumptions]
   )
 
-  const blendedRate = useMemo(() => calcBlendedRate(assumptions), [assumptions])
+  const blendedRate = useMemo(() => calcOverallBlendedRate(assumptions), [assumptions])
 
   const annuals = useMemo(() => ({
     y1: calcAnnualPL(1, assumptions),

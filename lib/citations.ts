@@ -50,10 +50,10 @@ export const CITATIONS: Citation[] = [
     link: 'https://www.jvsvenous.org/article/S2213-333X(24)00163-X/fulltext',
   },
   {
-    id: 'blendedRevenue',
-    assumption: 'Blended Revenue',
-    value: '$1,247',
-    rationale: 'Medicare base + commercial multiplier blended',
+    id: 'revenuePerProcedure',
+    assumption: 'Revenue per Procedure',
+    value: '$2,412 base / ~$3,377 blended',
+    rationale: 'Weighted blend of RFA/VenaSeal/Varithena/U/S fees from competitor fee schedule \u00d7 payer mix',
     link: '#',
   },
   {

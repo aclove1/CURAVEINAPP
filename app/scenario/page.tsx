@@ -67,7 +67,7 @@ function ScenarioRow({
   prefix,
   tooltip,
 }: {
-  label: string
+  label: React.ReactNode
   field: keyof Assumptions
   isPercent?: boolean
   prefix?: string
@@ -204,6 +204,9 @@ function PayerMixSection() {
           </tr>
         </tbody>
       </table>
+      <div className="px-4 py-2 border-t border-gray-800">
+        <span className="text-xs text-gray-500 italic">Source: CuraVein Referral Tracker</span>
+      </div>
     </div>
   )
 }
@@ -342,7 +345,7 @@ export default function ScenarioPage() {
             updateAssumption('medicareMix', d.medicareMix)
             updateAssumption('commercialMix', d.commercialMix)
           }}>
-            <ScenarioRow label="Medicare Rate ($)" field="medicareRate" prefix="$" />
+            <ScenarioRow label={<>Medicare Rate ($) <a href="https://www.cms.gov/medicare/payment/fee-schedules" target="_blank" rel="noopener noreferrer" className="text-[#5faaa6] hover:text-[#7cc4c0] text-[10px] ml-0.5">&#8599;</a></>} field="medicareRate" prefix="$" />
             <ScenarioRow label="Commercial Multiplier" field="commercialMultiplier" />
             <SingleRow label="Medicare Mix" field="medicareMix" isPercent />
             <SingleRow label="Commercial Mix" field="commercialMix" isPercent />
@@ -440,8 +443,8 @@ export default function ScenarioPage() {
             updateAssumption('y2VolumeGrowth', d.y2VolumeGrowth)
             updateAssumption('y3VolumeGrowth', d.y3VolumeGrowth)
           }}>
-            <ScenarioRow label="Y2 Volume Growth" field="y2VolumeGrowth" isPercent />
-            <ScenarioRow label="Y3 Volume Growth" field="y3VolumeGrowth" isPercent />
+            <ScenarioRow label="Y2 Volume Growth" field="y2VolumeGrowth" isPercent tooltip={{ text: 'Endovenous ablation market grew 107% (2010\u20132018). National CAGR projected at 6.8% through 2030.', href: 'https://www.grandviewresearch.com/industry-analysis/varicose-vein-treatment-market' }} />
+            <ScenarioRow label="Y3 Volume Growth" field="y3VolumeGrowth" isPercent tooltip={{ text: 'Endovenous ablation market grew 107% (2010\u20132018). National CAGR projected at 6.8% through 2030.', href: 'https://www.grandviewresearch.com/industry-analysis/varicose-vein-treatment-market' }} />
           </SectionTable>
 
           <PayerMixSection />

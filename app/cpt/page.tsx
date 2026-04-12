@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useModelStore } from '@/lib/store'
-import { calcBlendedRate } from '@/lib/model'
+import { calcOverallBlendedRate } from '@/lib/model'
 import { fmtCurrency, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
@@ -14,7 +14,7 @@ export default function CPTPage() {
   const { assumptions } = useModelStore()
   const [capacity, setCapacity] = useState<CapacityLevel>('100')
 
-  const blendedRate = useMemo(() => calcBlendedRate(assumptions), [assumptions])
+  const blendedRate = useMemo(() => calcOverallBlendedRate(assumptions), [assumptions])
 
   const [editCounts, setEditCounts] = useState<Record<string, { at50: number; at100: number }>>({})
 

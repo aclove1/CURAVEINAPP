@@ -113,22 +113,25 @@ export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
   return { month, leads, contacts, booked, shows, treated, rawProcs, cappedProcs, utilization, excessDemand, marketingSpend: spend }
 }
 
-/* ── Blended rates (legacy ablation/sclero + Varithena) ──── */
+/* ── Weighted fee schedule blended rate ────────────────────── */
 
-export function calcBlendedRate(a: Assumptions): number {
-  const medicareRate = sv(a.medicareRate, a.scenario)
-  const multiplier = sv(a.commercialMultiplier, a.scenario)
-  return Math.round(medicareRate * (a.medicareMix + a.commercialMix * multiplier))
+const FEE_SCHEDULE = [
+  { code: '36475', medicareFee: 4309, volumeShare: 0.30 },  // VNUS RFA
+  { code: '36482', medicareFee: 4403, volumeShare: 0.15 },  // VenaSeal
+  { code: '36465', medicareFee: 1232, volumeShare: 0.20 },  // Varithena
+  { code: '36466', medicareFee: 1291, volumeShare: 0.10 },  // Varithena 2+
+  { code: '93970', medicareFee: 379,  volumeShare: 0.15 },  // BIL U/S
+  { code: '93971', medicareFee: 264,  volumeShare: 0.10 },  // UNI U/S
+]
+
+export function calcWeightedMedicareBase(): number {
+  return FEE_SCHEDULE.reduce((sum, f) => sum + f.medicareFee * f.volumeShare, 0)
 }
 
 export function calcOverallBlendedRate(a: Assumptions): number {
-  const mix = normalizeProcedureMix(a)
-  const nonVarithenaRate = calcBlendedRate(a)
-  const varithenaRate = calcVarithenaBlendedRate(a)
-  return Math.round(
-    (mix.vs + mix.rf + mix.sclero) * nonVarithenaRate +
-    mix.varithena * varithenaRate
-  )
+  const medicareBase = calcWeightedMedicareBase()
+  const multiplier = sv(a.commercialMultiplier, a.scenario)
+  return Math.round(medicareBase * (a.medicareMix + a.commercialMix * multiplier))
 }
 
 /* ── Revenue ──────────────────────────────────────────────── */
