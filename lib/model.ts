@@ -111,11 +111,11 @@ export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
   const idx = month - 1
   const spend = svArr(a.marketingSpend, a.scenario)[idx] ?? 0
   const cpl = sv(a.cpl, a.scenario)
-  const leads = Math.floor(spend / cpl)
-  const contacts = Math.floor(leads * sv(a.contactRate, a.scenario))
-  const booked = Math.floor(contacts * sv(a.bookingRate, a.scenario))
-  const shows = Math.floor(booked * sv(a.showRate, a.scenario))
-  const treated = Math.floor(shows * sv(a.treatmentConversion, a.scenario))
+  const leads = Math.round(spend / cpl)
+  const contacts = Math.round(leads * sv(a.contactRate, a.scenario))
+  const booked = Math.round(contacts * sv(a.bookingRate, a.scenario))
+  const shows = Math.round(booked * sv(a.showRate, a.scenario))
+  const treated = Math.round(shows * sv(a.treatmentConversion, a.scenario))
   const rawProcs = Math.round(treated * sv(a.procsPerPatient, a.scenario))
   const cappedProcs = Math.min(rawProcs, a.maxCapacityPerMonth)
   const utilization = cappedProcs / a.maxCapacityPerMonth

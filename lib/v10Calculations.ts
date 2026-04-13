@@ -28,11 +28,11 @@ export interface MonthResult {
 export function runFunnelYear1(scenario: ScenarioConfig): MonthResult[] {
   return scenario.monthlyFunnel.map((m) => {
     const blendedRate = calcBlendedRate(m.commercialPct)
-    const leads       = Math.floor(m.marketingSpend / m.cpl)
-    const contacts    = Math.floor(leads * m.contactRate)
-    const booked      = Math.floor(contacts * m.bookingRate)
-    const shows       = Math.floor(booked * m.showRate)
-    const treated     = Math.floor(shows * m.treatmentConv)
+    const leads       = Math.round(m.marketingSpend / m.cpl)
+    const contacts    = Math.round(leads * m.contactRate)
+    const booked      = Math.round(contacts * m.bookingRate)
+    const shows       = Math.round(booked * m.showRate)
+    const treated     = Math.round(shows * m.treatmentConv)
     const rawProcs    = Math.round(treated * scenario.procsPerPatient)
     const totalProcs  = Math.min(rawProcs, scenario.maxCapacityPerMonth)
     const grossRevenue    = totalProcs * blendedRate
