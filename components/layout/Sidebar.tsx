@@ -28,7 +28,7 @@ export function Sidebar() {
           </div>
           <div>
             <div className="text-white font-semibold text-sm leading-none">CuraVein</div>
-            <div className="text-gray-400 text-xs mt-0.5">Financial Model</div>
+            <div className="text-gray-400 text-xs mt-0.5">Flagship Proforma</div>
           </div>
         </div>
       </div>

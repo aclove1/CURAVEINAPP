@@ -3,8 +3,8 @@ import './globals.css'
 import { Sidebar } from '@/components/layout/Sidebar'
 
 export const metadata: Metadata = {
-  title: 'CuraVein Financial Model',
-  description: 'PE-grade financial model for CuraVein specialty vein practice',
+  title: 'CuraVein Flagship Proforma',
+  description: 'PE-grade proforma for CuraVein specialty vein practice',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

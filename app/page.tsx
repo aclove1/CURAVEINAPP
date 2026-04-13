@@ -2,17 +2,17 @@
 
 import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { useModelStore } from '@/lib/store'
-import { calcKeyMetrics, calcAnnualPL, calcFunnelBridge } from '@/lib/model'
+import { useModelStore, useV10Results } from '@/lib/store'
 import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
+import { SCENARIOS, type ScenarioKey } from '@/lib/scenarioData'
 
 const EBITDA_TOOLTIPS: Record<string, string> = {
   'Year 1': 'Ramp year \u2014 funnel building, below capacity',
-  'Year 2': 'Stabilization \u2014 conversion rates improve 10% YoY',
-  'Year 3': 'Maturity \u2014 conversion rates improve additional 15% YoY',
+  'Year 2': 'Stabilization \u2014 conversion rates improve YoY',
+  'Year 3': 'Maturity \u2014 full payer credentialing, referral network scaled',
 }
 
 function EbitdaTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
@@ -42,49 +42,76 @@ const SLIDERS = [
 ]
 
 export default function DashboardPage() {
-  const { assumptions, updateAssumption } = useModelStore()
-  const metrics = useMemo(() => calcKeyMetrics(assumptions), [assumptions])
-  const bridge = useMemo(() => calcFunnelBridge(assumptions), [assumptions])
+  const { assumptions, updateAssumption, activeV10Scenario, setV10Scenario } = useModelStore()
+  const v10 = useV10Results()
 
-  const y1 = useMemo(() => calcAnnualPL(1, assumptions), [assumptions])
-  const y2 = useMemo(() => calcAnnualPL(2, assumptions), [assumptions])
-  const y3 = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
+  const y1Rev = v10.y1.grossRevenue
+  const y2Rev = v10.y2.grossRevenue
+  const y3Rev = v10.y3.grossRevenue
 
   const chartData = [
-    { year: 'Year 1', ebitda: y1.ebitda },
-    { year: 'Year 2', ebitda: y2.ebitda },
-    { year: 'Year 3', ebitda: y3.ebitda },
+    { year: 'Year 1', ebitda: y1Rev },
+    { year: 'Year 2', ebitda: y2Rev },
+    { year: 'Year 3', ebitda: y3Rev },
   ]
 
-  // FIX 9 — Tax and FCF
-  const capex = [150000, 50000, 50000]
-  const revenues = [y1.grossRevenue, y2.grossRevenue, y3.grossRevenue]
-  const ebitdas = [y1.ebitda, y2.ebitda, y3.ebitda]
-  const taxes = ebitdas.map(e => Math.max(0, e * 0.25))
-  const netIncomes = ebitdas.map((e, i) => e - taxes[i])
-  const deltaWC = revenues.map((r, i) => i === 0 ? r * 0.05 : (r - revenues[i - 1]) * 0.05)
-  const fcf = ebitdas.map((e, i) => e - capex[i] - deltaWC[i])
+  const y1Procs = v10.y1.annualProcs
+  const matureRate = v10.y2.blendedRate
+  const monthsAtCap = v10.y1Months.filter(m => m.utilizationPct >= 1).length
 
-  const breakevenLabel = metrics.breakevenMonth
-    ? metrics.breakevenMonth <= 12
-      ? `Month ${metrics.breakevenMonth} (Y1)`
-      : `Month ${metrics.breakevenMonth} (Y${Math.ceil(metrics.breakevenMonth / 12)})`
-    : 'Not within 3 years'
+  const totalMarketing = v10.y1Months.reduce((s, m) => s + m.marketingSpend, 0)
+  const totalTreated = v10.y1Months.reduce((s, m) => s + m.treatedPatients, 0)
+  const cpa = totalTreated > 0 ? totalMarketing / totalTreated : 0
+  const revPerProc = y1Procs > 0 ? y1Rev / y1Procs : 0
+  const revPerPatient = v10.scenario.procsPerPatient > 0 ? revPerProc * v10.scenario.procsPerPatient : 0
+
+  // Funnel bridge
+  const bridge = useMemo(() => {
+    const ms = v10.y1Months
+    const leads = ms.reduce((s, m) => s + m.leads, 0)
+    const contacts = ms.reduce((s, m) => s + m.contacts, 0)
+    const booked = ms.reduce((s, m) => s + m.booked, 0)
+    const shows = ms.reduce((s, m) => s + m.shows, 0)
+    const treated = ms.reduce((s, m) => s + m.treatedPatients, 0)
+    const procs = ms.reduce((s, m) => s + m.totalProcs, 0)
+    const rev = ms.reduce((s, m) => s + m.grossRevenue, 0)
+    return { leads, contacts, booked, shows, treated, procs, rev }
+  }, [v10.y1Months])
 
   return (
     <div>
-      <TopBar title="Dashboard \u2014 Key Metrics Snapshot" />
+      <TopBar title="Dashboard — Key Metrics Snapshot" />
       <div className="p-6 space-y-6">
 
-        <a
-          href="https://curavein.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors hover:opacity-90"
-          style={{ backgroundColor: '#5faaa6' }}
-        >
-          CuraVein&trade; Referral Financial Model
-        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href="https://curavein.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors hover:opacity-90"
+            style={{ backgroundColor: '#5faaa6' }}
+          >
+            CuraVein&trade; Flagship Proforma
+          </a>
+
+          {/* V10 Scenario Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Scenario:</span>
+            {(Object.keys(SCENARIOS) as ScenarioKey[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => setV10Scenario(key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  activeV10Scenario === key
+                    ? 'bg-[#5faaa6] text-white'
+                    : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {SCENARIOS[key].label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-[#5faaa6] mb-4">Conversion Rate Controls</h2>
@@ -125,79 +152,73 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          <KpiCard label="Avg Monthly Procedures" value={fmtDecimal(metrics.avgMonthlyProcs, 1)} sub={metrics.monthsAtCapacity > 0 ? `${metrics.monthsAtCapacity} mo AT CAPACITY` : 'Y1 average'} highlight={metrics.monthsAtCapacity > 0} />
-          <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Derived from competitor fee schedule weighted by procedure volume mix across RFA, VenaSeal, Varithena, and ultrasound CPT codes" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(metrics.revenuePerProc, false)} sub="Before 8% management fee" />
-          <KpiCard label={<>COGS / Procedure <TooltipInfo text="VenaSeal (~$800 supply cost) + RF consumables (~$200) + misc consumables (~$100), blended by procedure mix" href="/citations?highlight=cogsPerProcedure" /></>} value={fmtCurrency(metrics.cogsPerProc, false)} sub="Supply costs" />
-          <KpiCard label="Stabilized Monthly EBITDA" value={fmtCurrency(metrics.stabilizedMonthlyEbitda)} sub="Month 12" highlight={metrics.stabilizedMonthlyEbitda > 0} />
-          <KpiCard label="Revenue / Patient" value={fmtCurrency(metrics.revenuePerPatient, false)} sub="Before 8% management fee" />
-          <KpiCard label="Cost Per Acquisition" value={fmtCurrency(metrics.costPerAcquisition, false)} sub="Marketing / treated" />
+          <KpiCard label="Y1 Procedures" value={fmtNumber(y1Procs)} sub={monthsAtCap > 0 ? `${monthsAtCap} mo AT CAPACITY` : `${v10.scenario.maxCapacityPerMonth}/mo cap`} highlight={monthsAtCap > 0} />
+          <KpiCard label={<>Blended Rate <TooltipInfo text="Medicare base $1,147 \u00d7 payer-weighted commercial multiplier 2.55\u00d7" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(matureRate, false)} sub="Mature (M7+)" />
+          <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Weighted avg across credentialing ramp months" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(revPerProc, false)} sub="Before 8% mgmt fee" />
+          <KpiCard label="Revenue / Patient" value={fmtCurrency(revPerPatient, false)} sub="Before 8% mgmt fee" />
+          <KpiCard label="Cost Per Acquisition" value={fmtCurrency(cpa, false)} sub="Marketing / treated" />
+          <KpiCard label="Procs / Patient" value={fmtDecimal(v10.scenario.procsPerPatient, 1)} />
         </div>
 
-        {/* FIX 5 — Funnel Bridge */}
+        {/* Funnel Bridge */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800">
-            <h2 className="text-sm font-semibold text-[#5faaa6]">Y1 Funnel Bridge Reconciliation</h2>
+            <h2 className="text-sm font-semibold text-[#5faaa6]">Y1 Funnel Bridge</h2>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium">Stage</th>
                 <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Monthly Avg</th>
-                <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Annual Total</th>
+                <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Annual</th>
                 <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">Conv Rate</th>
               </tr>
             </thead>
             <tbody>
               {[
-                { stage: 'Leads', avg: bridge.leads.monthlyAvg, total: bridge.leads.annual, rate: null },
-                { stage: 'Contacts', avg: bridge.contacts.monthlyAvg, total: bridge.contacts.annual, rate: bridge.contacts.rate },
-                { stage: 'Booked', avg: bridge.booked.monthlyAvg, total: bridge.booked.annual, rate: bridge.booked.rate },
-                { stage: 'Shows', avg: bridge.shows.monthlyAvg, total: bridge.shows.annual, rate: bridge.shows.rate },
-                { stage: 'Treated', avg: bridge.treated.monthlyAvg, total: bridge.treated.annual, rate: bridge.treated.rate },
-                { stage: 'Procedures', avg: bridge.procedures.monthlyAvg, total: bridge.procedures.annual, rate: bridge.procedures.rate },
-                { stage: 'Revenue', avg: bridge.revenue.monthlyAvg, total: bridge.revenue.annual, rate: null },
+                { stage: 'Leads', total: bridge.leads, rate: null },
+                { stage: 'Contacts', total: bridge.contacts, rate: bridge.leads > 0 ? bridge.contacts / bridge.leads : 0 },
+                { stage: 'Booked', total: bridge.booked, rate: bridge.contacts > 0 ? bridge.booked / bridge.contacts : 0 },
+                { stage: 'Shows', total: bridge.shows, rate: bridge.booked > 0 ? bridge.shows / bridge.booked : 0 },
+                { stage: 'Treated', total: bridge.treated, rate: bridge.shows > 0 ? bridge.treated / bridge.shows : 0 },
+                { stage: 'Procedures', total: bridge.procs, rate: bridge.treated > 0 ? bridge.procs / bridge.treated : 0 },
+                { stage: 'Gross Revenue', total: bridge.rev, rate: null },
               ].map((r, i) => (
                 <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                   <td className="px-5 py-2.5 text-gray-300 font-medium">{r.stage}</td>
-                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Revenue' ? fmtCurrency(r.avg) : fmtDecimal(r.avg, 1)}</td>
-                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Revenue' ? fmtCurrency(r.total) : fmtNumber(r.total)}</td>
+                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Gross Revenue' ? fmtCurrency(r.total / 12) : fmtDecimal(r.total / 12, 1)}</td>
+                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Gross Revenue' ? fmtCurrency(r.total) : fmtNumber(r.total)}</td>
                   <td className="px-5 py-2.5 text-right text-gray-400">{r.rate !== null ? fmtPct(r.rate) : '\u2014'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="px-5 py-3 border-t border-gray-800 flex gap-6 text-xs">
-            <span className={bridge.plProcsMatch ? 'text-emerald-400' : 'text-red-400'}>
-              {bridge.plProcsMatch ? '\u2713' : '\u26A0'} Procedures match P&L: {bridge.plProcsMatch ? 'Yes' : 'MISMATCH'}
-            </span>
-            <span className={bridge.plRevenueMatch ? 'text-emerald-400' : 'text-red-400'}>
-              {bridge.plRevenueMatch ? '\u2713' : '\u26A0'} Revenue matches P&L: {bridge.plRevenueMatch ? 'Yes' : 'MISMATCH'}
-            </span>
-          </div>
         </div>
 
+        {/* 3-Year Revenue */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-gray-300 mb-4">3-Year EBITDA Trajectory</h2>
+            <h2 className="text-sm font-semibold text-gray-300 mb-4">3-Year Gross Revenue Trajectory</h2>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} barCategoryGap="40%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1_000_000).toFixed(1)}M`} />
                 <Tooltip content={<EbitdaTooltip />} cursor={{ fill: '#1f2937' }} />
-                <Bar dataKey="ebitda" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="ebitda" name="Gross Revenue" fill="#14b8a6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-300">Breakeven Analysis</h2>
+            <h2 className="text-sm font-semibold text-gray-300">Revenue Summary</h2>
             {[
-              { label: 'Monthly Breakeven (procedures)', value: fmtNumber(metrics.breakevenProcs), accent: false },
-              { label: 'Projected Breakeven', value: breakevenLabel, accent: true },
-              { label: 'Y1 Total Revenue', value: fmtCurrency(metrics.y1TotalRevenue), accent: false },
-              { label: 'Y2 Total Revenue', value: fmtCurrency(metrics.y2TotalRevenue), accent: false },
-              { label: 'Y3 Total Revenue', value: fmtCurrency(metrics.y3TotalRevenue), accent: false },
+              { label: 'Y1 Gross Revenue', value: fmtCurrency(y1Rev), accent: true },
+              { label: 'Y2 Gross Revenue', value: fmtCurrency(y2Rev), accent: false },
+              { label: 'Y3 Gross Revenue', value: fmtCurrency(y3Rev), accent: false },
+              { label: 'Y1 Mgmt Fee (8%)', value: fmtCurrency(v10.y1.mgmtFee), accent: false },
+              { label: 'Y1 Net Revenue', value: fmtCurrency(v10.y1.netRevenue), accent: true },
+              { label: 'Max Capacity', value: `${v10.scenario.maxCapacityPerMonth}/mo`, accent: false },
             ].map((item, i) => (
               <div key={i} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
                 <span className="text-sm text-gray-400">{item.label}</span>
@@ -207,7 +228,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* FIX 9 — 3-Year Summary with Tax and FCF */}
+        {/* 3-Year Summary Table */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-gray-300">3-Year Summary</h2>
@@ -220,29 +241,26 @@ export default function DashboardPage() {
                   Year 1 <TooltipInfo text="Ramp year \u2014 funnel building, below capacity" href="#" />
                 </th>
                 <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">
-                  Year 2 <TooltipInfo text="Stabilization \u2014 conversion rates improve 10% YoY" href="#" />
+                  Year 2 <TooltipInfo text="Stabilization \u2014 conversion rates improve YoY" href="#" />
                 </th>
                 <th className="text-right px-5 py-3 text-xs text-gray-400 font-medium">
-                  Year 3 <TooltipInfo text="Maturity \u2014 conversion rates improve additional 15% YoY" href="#" />
+                  Year 3 <TooltipInfo text="Maturity \u2014 full payer credentialing, referral network scaled" href="#" />
                 </th>
               </tr>
             </thead>
             <tbody>
               {([
-                { label: 'Gross Revenue', vals: revenues },
-                { label: 'Total Procedures', vals: [y1.totalProcs, y2.totalProcs, y3.totalProcs] },
-                { label: 'EBITDA', vals: ebitdas },
-                { label: 'Tax (25% \u2014 adjust per entity structure)', vals: taxes },
-                { label: 'Net Income After Tax', vals: netIncomes },
-                { label: 'CapEx', vals: capex },
-                { label: '\u0394 Working Capital (5% of rev growth)', vals: deltaWC },
-                { label: 'Free Cash Flow', vals: fcf },
-              ] as { label: string; vals: number[] }[]).map((row, i) => (
-                <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${row.label === 'Free Cash Flow' ? 'bg-gray-800/20 font-semibold' : ''}`}>
+                { label: 'Annual Procedures', vals: [v10.y1.annualProcs, v10.y2.annualProcs, v10.y3.annualProcs], isCurrency: false },
+                { label: 'Blended Rate', vals: [v10.y1.blendedRate, v10.y2.blendedRate, v10.y3.blendedRate], isCurrency: true },
+                { label: 'Gross Revenue', vals: [y1Rev, y2Rev, y3Rev], isCurrency: true },
+                { label: 'Mgmt Fee (8%)', vals: [v10.y1.mgmtFee, v10.y2.mgmtFee, v10.y3.mgmtFee], isCurrency: true },
+                { label: 'Net Revenue', vals: [v10.y1.netRevenue, v10.y2.netRevenue, v10.y3.netRevenue], isCurrency: true },
+              ]).map((row, i) => (
+                <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${row.label === 'Net Revenue' ? 'bg-gray-800/20 font-semibold' : ''}`}>
                   <td className="px-5 py-3 text-gray-300">{row.label}</td>
                   {row.vals.map((v, j) => (
                     <td key={j} className={`px-5 py-3 text-right font-medium ${v < 0 ? 'text-red-400' : 'text-white'}`}>
-                      {row.label === 'Total Procedures' ? fmtNumber(v) : fmtCurrency(v)}
+                      {row.isCurrency ? fmtCurrency(v) : fmtNumber(v)}
                     </td>
                   ))}
                 </tr>
