@@ -133,13 +133,15 @@ function blendedCommercialMultiplier(a: Assumptions): number {
 
 /* ── Weighted fee schedule blended rate ────────────────────── */
 
+// v11-aligned CPT fee schedule — weighted base = $1,147 (matches SC E130)
+// Commercial multiplier of 1.875× at 15% Medicare / 85% commercial → $2,000 blended
 const FEE_SCHEDULE = [
-  { code: '36475', medicareFee: 4309, volumeShare: 0.30 },
-  { code: '36482', medicareFee: 4403, volumeShare: 0.15 },
-  { code: '36465', medicareFee: 1232, volumeShare: 0.20 },
-  { code: '36466', medicareFee: 1291, volumeShare: 0.10 },
-  { code: '93970', medicareFee: 379,  volumeShare: 0.15 },
-  { code: '93971', medicareFee: 264,  volumeShare: 0.10 },
+  { code: '36475', medicareFee: 1700.00,   volumeShare: 0.30 },  // RFA
+  { code: '36482', medicareFee: 1452.78,   volumeShare: 0.15 },  // VenaSeal
+  { code: '36465', medicareFee: 1122.16,   volumeShare: 0.20 },  // Varithena single
+  { code: '36466', medicareFee: 1253.75,   volumeShare: 0.13 },  // Varithena multiple
+  { code: '93970', medicareFee:  170.25,   volumeShare: 0.12 },  // Duplex bilateral (baked-in US)
+  { code: '93971', medicareFee:  108.99,   volumeShare: 0.10 },  // Duplex unilateral (baked-in US)
 ]
 
 export function calcWeightedMedicareBase(): number {
