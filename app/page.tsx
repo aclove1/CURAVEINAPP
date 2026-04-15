@@ -179,7 +179,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <KpiCard label="Y1 Procedures" value={fmtNumber(y1Procs)} sub={monthsAtCap > 0 ? `${monthsAtCap} mo AT CAPACITY` : `${v10.scenario.maxCapacityPerMonth}/mo cap`} highlight={monthsAtCap > 0} />
-          <KpiCard label={<>Blended Rate <TooltipInfo text="Medicare base $1,147 \u00d7 payer-weighted commercial multiplier 2.55\u00d7" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(matureRate, false)} sub="Mature (M7+)" />
+          <KpiCard label={<>Blended Rate <TooltipInfo text="Medicare weighted base $1,408 \u00d7 blended commercial multiplier 1.496\u00d7 (BCBS 30%\u00d71.30 + Aetna/UHC/Cigna 70%\u00d71.58) = $2,002 at 15% govt / 85% commercial \u2014 Forney market" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(matureRate, false)} sub="Mature (M7+)" />
           <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Weighted avg across credentialing ramp months" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(revPerProc, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Revenue / Patient" value={fmtCurrency(revPerPatient, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Cost Per Acquisition" value={fmtCurrency(cpa, false)} sub="Marketing / treated" />

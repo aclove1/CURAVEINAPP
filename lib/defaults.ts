@@ -18,7 +18,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   treatmentConversion: { conservative: 0.55, base: 0.65, aggressive: 0.75 },
   procsPerPatient: { conservative: 3.0, base: 3.5, aggressive: 4.0 },
   maxCapacityPerMonth: 146,
-  medicareRate: { conservative: 1147, base: 1147, aggressive: 1147 },
+  medicareRate: { conservative: 1408, base: 1408, aggressive: 1408 }, // SC!E130 — CPT weighted base (was 1147)
   // Commercial multiplier v11: BCBS 30%×1.30 + Aetna/UHC/Cigna 70%×1.58 = 1.496 (SC!D156→F15)
   commercialMultiplier: { conservative: 1.496, base: 1.496, aggressive: 1.496 },
   bcbsMultiplier: 1.30,              // SC!C154 — BCBS rate vs Medicare
@@ -28,7 +28,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   commercialMix: 0.85,               // SC!F17 — Forney market
   wasteFactor: 0.075,
   miscConsumables: 15,
-  postProcSupport: 17.49,  // IS!B7 — aligned to spreadsheet (was 17.50)
+  postProcSupport: 17.50,  // IS!B7 — $17.50/proc (was 17.49, spreadsheet = 17.5)
   venasealPtsPerKit: 2.5,    // IS!B8 (was 2.3)
   scleroBuffer: 0.125,       // IS!B9
   // Procedure mix v11: VenaSeal 65% / Varithena 25% / RFA 10% / Sclerotherapy 0%
