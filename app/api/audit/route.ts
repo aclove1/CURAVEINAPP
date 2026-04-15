@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { REIMBURSEMENT, SCENARIOS, DEFAULT_SCENARIO } from '@/lib/scenarioData'
-import { DEFAULT_ASSUMPTIONS, CPT_CODES, MARKET_PAYER_MIX } from '@/lib/defaults'
+import { DEFAULT_ASSUMPTIONS, CPT_CODES } from '@/lib/defaults'
 import {
   calcWeightedMedicareBase,
   calcOverallBlendedRate,
