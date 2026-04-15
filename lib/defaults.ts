@@ -68,18 +68,21 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   varithenaEnabled: true,
 }
 
+// v11 CPT table — rates from SC!C124-C127 (CMS PFS 2025 non-facility)
+// mixPct = volume share within the primary billing mix (must sum to 1.0 across active codes)
 export const CPT_CODES = [
-  { code: '36475', description: 'Endovenous RF 1st vein', category: 'procedure' as const, medicareRate: 890, countAt50: 22, countAt100: 44, mixPct: 0.10 },
-  { code: '36476', description: 'Endovenous RF each add vein', category: 'procedure' as const, medicareRate: 420, countAt50: 14, countAt100: 28, mixPct: 0.06 },
-  { code: '36478', description: 'Endovenous laser 1st vein', category: 'procedure' as const, medicareRate: 890, countAt50: 10, countAt100: 20, mixPct: 0.05 },
-  { code: '36479', description: 'Endovenous laser each add vein', category: 'procedure' as const, medicareRate: 420, countAt50: 6, countAt100: 12, mixPct: 0.03 },
-  { code: '36482', description: 'VenaSeal 1st vein', category: 'procedure' as const, medicareRate: 1150, countAt50: 34, countAt100: 68, mixPct: 0.15 },
-  { code: '36483', description: 'VenaSeal each add vein', category: 'procedure' as const, medicareRate: 580, countAt50: 22, countAt100: 44, mixPct: 0.10 },
-  { code: '36470', description: 'Sclerotherapy single vein', category: 'procedure' as const, medicareRate: 290, countAt50: 30, countAt100: 60, mixPct: 0.14 },
-  { code: '36471', description: 'Sclerotherapy multiple veins', category: 'procedure' as const, medicareRate: 420, countAt50: 20, countAt100: 40, mixPct: 0.09 },
-  { code: '93971', description: 'Duplex scan lower extremity unilateral', category: 'procedure' as const, medicareRate: 280, countAt50: 50, countAt100: 100, mixPct: 0.23 },
-  { code: '93970', description: 'Duplex scan lower extremity bilateral', category: 'procedure' as const, medicareRate: 380, countAt50: 12, countAt100: 24, mixPct: 0.05 },
-  { code: '99213', description: 'Office visit est patient low complexity', category: 'em' as const, medicareRate: 93, countAt50: 50, countAt100: 100, mixPct: 0.50 },
-  { code: '99214', description: 'Office visit est patient moderate complexity', category: 'em' as const, medicareRate: 134, countAt50: 40, countAt100: 80, mixPct: 0.40 },
-  { code: '99215', description: 'Office visit est patient high complexity', category: 'em' as const, medicareRate: 174, countAt50: 10, countAt100: 20, mixPct: 0.10 },
+  // ── Primary billing mix (drives revenue model — SC!D124-D127) ─────────────
+  { code: '36482', description: 'VenaSeal — Cyanoacrylate Closure (1st vein)',              category: 'procedure' as const, medicareRate: 1452.78, countAt50: 33, countAt100: 65, mixPct: 0.65 },
+  { code: '36465', description: 'Varithena — Non-compounded foam, single segment',          category: 'procedure' as const, medicareRate: 1122.16, countAt50:  8, countAt100: 15, mixPct: 0.15 },
+  { code: '36466', description: 'Varithena — Non-compounded foam, multiple segments',       category: 'procedure' as const, medicareRate: 1253.75, countAt50:  5, countAt100: 10, mixPct: 0.10 },
+  { code: '36475', description: 'RF Ablation — Endovenous Radiofrequency (1st vein)',       category: 'procedure' as const, medicareRate: 1700.00, countAt50:  5, countAt100: 10, mixPct: 0.10 },
+  // ── Ancillary / diagnostic (scales with procedures — not in blended rate) ──
+  { code: '93970', description: 'Duplex scan — bilateral lower extremity',                  category: 'procedure' as const, medicareRate:  170.25, countAt50: 12, countAt100: 24, mixPct: 0.00 },
+  { code: '93971', description: 'Duplex scan — unilateral lower extremity',                 category: 'procedure' as const, medicareRate:  108.99, countAt50: 25, countAt100: 50, mixPct: 0.00 },
+  // ── Retired from active mix (0% — superseded by Varithena CPTs) ───────────
+  { code: '36471', description: 'Sclerotherapy — multiple injections (retired from mix)',   category: 'procedure' as const, medicareRate:  231.00, countAt50:  0, countAt100:  0, mixPct: 0.00 },
+  // ── E&M codes ──────────────────────────────────────────────────────────────
+  { code: '99213', description: 'Office visit — established patient, low complexity',       category: 'em' as const,        medicareRate:   93.00, countAt50: 50, countAt100: 100, mixPct: 0.50 },
+  { code: '99214', description: 'Office visit — established patient, moderate complexity',  category: 'em' as const,        medicareRate:  134.00, countAt50: 40, countAt100:  80, mixPct: 0.40 },
+  { code: '99215', description: 'Office visit — established patient, high complexity',      category: 'em' as const,        medicareRate:  174.00, countAt50: 10, countAt100:  20, mixPct: 0.10 },
 ]

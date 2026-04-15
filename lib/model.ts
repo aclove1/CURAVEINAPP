@@ -39,13 +39,18 @@ export function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-/* ── FIX 2 — Credentialing ramp payer mix override ────────── */
+/* ── Credentialing ramp — SC!D163:D174 (Base/Conservative scenario) ────────
+   Month:          1     2     3     4     5     6–12
+   Commercial %: 0.40  0.53  0.67  0.80  0.85   0.85 (= market steady-state)
+   Source: Scenario Controls rows 163-174, active scenario D column          */
+const CRED_RAMP_COMM = [0.40, 0.53, 0.67, 0.80, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85]
 
 function getCredentialingMix(month: number, a: Assumptions): { govMix: number; commMix: number } {
-  const marketMix = MARKET_PAYER_MIX[a.market] ?? MARKET_PAYER_MIX.newBraunfels
-  if (month <= 3) return { govMix: 0.60, commMix: 0.40 }
-  if (month <= 6) return { govMix: 0.40, commMix: 0.60 }
-  return { govMix: marketMix.government, commMix: marketMix.commercial }
+  const marketMix = MARKET_PAYER_MIX[a.market] ?? MARKET_PAYER_MIX.forney
+  const commPct = month >= 1 && month <= 12
+    ? CRED_RAMP_COMM[month - 1]
+    : marketMix.commercial
+  return { govMix: 1 - commPct, commMix: commPct }
 }
 
 /* ── FIX 7 — Varithena toggle: effective procedure mix ────── */
