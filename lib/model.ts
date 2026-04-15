@@ -98,11 +98,14 @@ export function calcVarithenaBlendedRate(a: Assumptions): number {
   return (blended36465 * 0.7) + (blended36466 * 0.3)
 }
 
-/* ── Varithena cost ───────────────────────────────────────── */
+/* ── Varithena cost (v11) ─────────────────────────────────── */
+// Formula aligned to IS!F51 = F47 + 150.
+// F47 = all sclerotherapy procedural supplies ($120.15, stored in scleroSupplyCost).
+// $150 = Varithena polidocanol microfoam drug cost per patient (varithenaDrugCost).
+// No additional buffer/waste — F47 already includes waste factor from spreadsheet.
 
 export function calcVarithenaCostPerProc(a: Assumptions): number {
-  const sclerotherapyCost = a.scleroSupplyCost * (1 + a.scleroBuffer) * (1 + a.wasteFactor)
-  return (0.75 * sclerotherapyCost) + a.varithenaDrugCost
+  return a.scleroSupplyCost + a.varithenaDrugCost  // $120 + $150 = $270
 }
 
 /* ── Funnel ───────────────────────────────────────────────── */
@@ -133,15 +136,15 @@ function blendedCommercialMultiplier(a: Assumptions): number {
 
 /* ── Weighted fee schedule blended rate ────────────────────── */
 
-// v11-aligned CPT fee schedule — weighted base = $1,147 (matches SC E130)
-// Commercial multiplier of 1.875× at 15% Medicare / 85% commercial → $2,000 blended
+// v11 CPT fee schedule — 4 procedure codes only (top-revenue, last-touch billing mix).
+// Source: SC!C124-C127 (Medicare rates), SC!D124-D127 (volume shares).
+// Weighted base = SUMPRODUCT(rates, shares) = $1,408 (SC!E130).
+// US scans excluded from blended rate per Phase C: D128=D129=0.
 const FEE_SCHEDULE = [
-  { code: '36475', medicareFee: 1700.00,   volumeShare: 0.30 },  // RFA
-  { code: '36482', medicareFee: 1452.78,   volumeShare: 0.15 },  // VenaSeal
-  { code: '36465', medicareFee: 1122.16,   volumeShare: 0.20 },  // Varithena single
-  { code: '36466', medicareFee: 1253.75,   volumeShare: 0.13 },  // Varithena multiple
-  { code: '93970', medicareFee:  170.25,   volumeShare: 0.12 },  // Duplex bilateral (baked-in US)
-  { code: '93971', medicareFee:  108.99,   volumeShare: 0.10 },  // Duplex unilateral (baked-in US)
+  { code: '36482', medicareFee: 1452.78, volumeShare: 0.65 },  // VenaSeal — dominant @ 65% (SC!D125)
+  { code: '36465', medicareFee: 1122.16, volumeShare: 0.15 },  // Varithena single segment (SC!D126)
+  { code: '36466', medicareFee: 1253.75, volumeShare: 0.10 },  // Varithena multi-segment (SC!D127)
+  { code: '36475', medicareFee: 1700.00, volumeShare: 0.10 },  // RFA (SC!D124)
 ]
 
 export function calcWeightedMedicareBase(): number {

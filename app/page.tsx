@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, LineChart, Line, ReferenceLine, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useModelStore, useV10Results } from '@/lib/store'
 import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
@@ -23,6 +23,25 @@ function EbitdaTooltip({ active, payload, label }: { active?: boolean; payload?:
       <div className="text-gray-400 mb-1">{label}</div>
       <div className="text-white font-medium">{fmtCurrency(payload[0].value)}</div>
       {yearNote && <div className="text-gray-500 mt-1 text-[10px]">{yearNote}</div>}
+    </div>
+  )
+}
+
+function DemandTooltip({ active, payload, label, cap }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string; cap: number }) {
+  if (!active || !payload?.length) return null
+  const raw = payload.find(p => p.name === 'Market Demand')?.value ?? 0
+  const excess = Math.max(0, raw - cap)
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs space-y-1">
+      <div className="text-gray-400 font-medium mb-1">{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ color: p.color }}>{p.name}: <span className="text-white font-medium">{p.value}</span></div>
+      ))}
+      {excess > 0 && (
+        <div className="text-red-400 font-semibold border-t border-gray-700 pt-1 mt-1">
+          Excess demand: +{excess} procs/mo (waitlisted)
+        </div>
+      )}
     </div>
   )
 }
@@ -64,6 +83,13 @@ export default function DashboardPage() {
   const cpa = totalTreated > 0 ? totalMarketing / totalTreated : 0
   const revPerProc = y1Procs > 0 ? y1Rev / y1Procs : 0
   const revPerPatient = v10.scenario.procsPerPatient > 0 ? revPerProc * v10.scenario.procsPerPatient : 0
+
+  const demandChartData = v10.y1Months.map(m => ({
+    month: m.month,
+    'Market Demand': m.rawProcs,
+    'Actual Procs': m.totalProcs,
+    excess: Math.max(0, m.rawProcs - v10.scenario.maxCapacityPerMonth),
+  }))
 
   // Funnel bridge
   const bridge = useMemo(() => {
@@ -158,6 +184,38 @@ export default function DashboardPage() {
           <KpiCard label="Revenue / Patient" value={fmtCurrency(revPerPatient, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Cost Per Acquisition" value={fmtCurrency(cpa, false)} sub="Marketing / treated" />
           <KpiCard label="Procs / Patient" value={fmtDecimal(v10.scenario.procsPerPatient, 1)} />
+        </div>
+
+        {/* Monthly Demand vs Capacity */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div className="flex items-start justify-between mb-1">
+            <h2 className="text-sm font-semibold text-[#5faaa6]">Monthly Demand vs Capacity — Year 1</h2>
+            {demandChartData.some(d => d.excess > 0) && (
+              <span className="text-xs font-medium text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">
+                Excess demand detected — capacity-constrained
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            Raw funnel demand vs {v10.scenario.maxCapacityPerMonth}/mo capacity ceiling — excess demand = patients turned away, validating expansion thesis
+          </p>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={demandChartData} margin={{ top: 5, right: 24, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, Math.max(v10.scenario.maxCapacityPerMonth * 1.4, 20)]} />
+              <Tooltip content={<DemandTooltip cap={v10.scenario.maxCapacityPerMonth} />} />
+              <Legend wrapperStyle={{ fontSize: 11, color: '#9ca3af', paddingTop: 8 }} />
+              <ReferenceLine
+                y={v10.scenario.maxCapacityPerMonth}
+                stroke="#ef4444"
+                strokeDasharray="5 3"
+                label={{ value: `Capacity: ${v10.scenario.maxCapacityPerMonth}/mo`, fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }}
+              />
+              <Line type="monotone" dataKey="Market Demand" stroke="#14b8a6" strokeWidth={2.5} dot={{ fill: '#14b8a6', r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="Actual Procs" stroke="#6366f1" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
         {/* Funnel Bridge */}

@@ -1,8 +1,11 @@
 import type { Assumptions, MarketPayerMix } from './types'
 
+// Source: SC!B142 market selector → SC!B145-B149.
+// New Braunfels (Comal Co.): 18% age 65+ → 25% govt payer mix.
+// Forney (Kaufman Co.): 11% age 65+ → 15% govt payer mix.
 export const MARKET_PAYER_MIX: Record<string, MarketPayerMix> = {
-  newBraunfels: { government: 0.15, commercial: 0.85 },
-  forney: { government: 0.15, commercial: 0.85 },
+  newBraunfels: { government: 0.25, commercial: 0.75 },  // SC!B145 (was 0.15/0.85)
+  forney:       { government: 0.15, commercial: 0.85 },  // SC!B146
 }
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
@@ -16,23 +19,27 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   procsPerPatient: { conservative: 3.0, base: 3.5, aggressive: 4.0 },
   maxCapacityPerMonth: 146,
   medicareRate: { conservative: 1147, base: 1147, aggressive: 1147 },
-  commercialMultiplier: { conservative: 1.875, base: 1.875, aggressive: 1.875 },
-  bcbsMultiplier: 1.875,
-  otherCommercialMultiplier: 1.875,
-  bcbsShareOfCommercial: 0.20,
-  medicareMix: 0.15,
-  commercialMix: 0.85,
+  // Commercial multiplier v11: BCBS 30%×1.30 + Aetna/UHC/Cigna 70%×1.58 = 1.496 (SC!D156→F15)
+  commercialMultiplier: { conservative: 1.496, base: 1.496, aggressive: 1.496 },
+  bcbsMultiplier: 1.30,              // SC!C154 — BCBS rate vs Medicare
+  otherCommercialMultiplier: 1.58,   // SC!C155 — Aetna/UHC/Cigna blended
+  bcbsShareOfCommercial: 0.30,       // SC!B154 — BCBS 30% of commercial
+  medicareMix: 0.15,                 // SC!F16 — Forney market
+  commercialMix: 0.85,               // SC!F17 — Forney market
   wasteFactor: 0.075,
   miscConsumables: 15,
-  postProcSupport: 17.50,
-  venasealPtsPerKit: 2.3,
-  scleroBuffer: 0.125,
-  vsMix: 0.56,
-  rfMix: 0.10,
-  scleroMix: 0.19,
-  venasealUnitCost: 850,
+  postProcSupport: 17.49,  // IS!B7 — aligned to spreadsheet (was 17.50)
+  venasealPtsPerKit: 2.5,    // IS!B8 (was 2.3)
+  scleroBuffer: 0.125,       // IS!B9
+  // Procedure mix v11: VenaSeal 65% / Varithena 25% / RFA 10% / Sclerotherapy 0%
+  vsMix: 0.65,               // IS!B10 (was 0.56)
+  rfMix: 0.10,               // IS!B11
+  scleroMix: 0.00,           // IS!B12 — retired, superseded by Varithena
+  venasealUnitCost: 900,     // IS!D16 kit price (was 850)
   rfSupplyCost: 120,
-  scleroSupplyCost: 45,
+  // scleroSupplyCost now represents full procedural overhead (IS!F47=$120.15)
+  // Used in calcVarithenaCostPerProc as: scleroSupplyCost + varithenaDrugCost = $270
+  scleroSupplyCost: 120,     // IS!F47 total (was 45)
   marketingSpend: {
     // v11 SC conservative ramp (scaled ~85% of base)
     conservative: [3000, 3500, 4000, 5000, 6000, 7500, 9000, 10000, 12000, 18000, 20000, 22000],
@@ -53,10 +60,10 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   managementFeeRate: 0.08,
   y2VolumeGrowth: { conservative: 0.30, base: 0.39, aggressive: 0.55 },
   y3VolumeGrowth: { conservative: 0.30, base: 0.40, aggressive: 0.55 },
-  varithenaShare: 0.15,
+  varithenaShare: 0.25,      // IS!B13 (was 0.15)
   varithenaRates36465: { aetna: 1320, bcbs: 1450, humana: 1290, uhc: 1380, medicare: 1300 },
   varithenaRates36466: { aetna: 1420, bcbs: 1560, humana: 1380, uhc: 1490, medicare: 1400 },
-  varithenaDrugCost: 300,
+  varithenaDrugCost: 150,    // IS!F51 formula: F47+150 → drug cost = $150 (was $300)
   payerMix: { aetna: 0.14, bcbs: 0.32, humana: 0.12, uhc: 0.18, medicare: 0.24 },
   varithenaEnabled: true,
 }

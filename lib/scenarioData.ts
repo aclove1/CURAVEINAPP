@@ -29,22 +29,59 @@ export interface ScenarioConfig {
   monthlyFunnel: MonthlyFunnel[]
 }
 
-export const REIMBURSEMENT = {
-  medicareBase: 1147,
-  commercialMultiplier: 2.55,
-  matureMedicarePct: 0.15,
-  matureCommercialPct: 0.85,
-  matureBlendedRate: 2658,
-  mgmtFeeRate: 0.08,
-  procsPerPatient: 2.9,
+/* ── CPT Blended Pay Rates (v11 — CMS PFS 2025, non-facility) ─ */
+// Source: SC!C124-C127. Weighted base = $1,408 (SC!E130).
+
+export const CPT_BLENDED_RATES = {
+  '36465': 1122,   // Varithena — single segment (SC!C126)
+  '36466': 1254,   // Varithena — multiple segments (SC!C127)
+  '36475': 1700,   // RFA — endovenous radiofrequency ablation (SC!C124)
+  '36482': 1453,   // VenaSeal — cyanoacrylate closure (SC!C125)
 } as const
 
+/* ── Reimbursement Constants (v11) ───────────────────────────── */
+// Medicare weighted base $1,408 = SUMPRODUCT(CPT rates × volume shares).
+// Commercial multiplier 1.496 = BCBS 30%×1.30 + Aetna/UHC/Cigna 70%×1.58 (SC!D156).
+// Blended rate $2,002 = $1,408 × (15% govt + 85% comm × 1.496) — Forney market.
+
+export const REIMBURSEMENT = {
+  medicareBase: 1408,           // SC!E130 — CPT weighted Medicare base
+  commercialMultiplier: 1.496,  // SC!F15 → D156 (derived from channel block)
+  matureMedicarePct: 0.15,      // SC!F16 — Forney market (15% govt)
+  matureCommercialPct: 0.85,    // SC!F17 — Forney market (85% commercial)
+  matureBlendedRate: 2002,      // SC!F18 = ROUND(1408×(0.15+0.85×1.496),0)
+  mgmtFeeRate: 0.08,
+  procsPerEpisode: 3.5,         // SC!F12 — procedures per treated episode (Base)
+} as const
+
+/* ── COGS per Procedure (v11) ────────────────────────────────── */
+// Procedure mix: VenaSeal 65% / Varithena 25% / RFA 10% / Sclerotherapy 0%
+// Source: IS!B10-B13. Varithena cost = IS!F51 = F47($120.15) + $150 drug = $270.15.
+
 export const COGS_PER_PROC = {
-  venaSealMixPct: 0.65, costPerProc: 400,
-  rfAblationMixPct: 0.10, rfCostPerProc: 200,
-  scleroMixPct: 0.25, scleroCostPerProc: 65,
-  varithenaMixPct: 0.15, varithenaCostPerProc: 40,
+  venaSealMixPct:    0.65, costPerProc:          414,  // IS!B10, IS!F26
+  rfAblationMixPct:  0.10, rfCostPerProc:         218,  // IS!B11, IS!F37
+  scleroMixPct:      0.00, scleroCostPerProc:       0,  // IS!B12 = 0 — superseded by Varithena
+  varithenaMixPct:   0.25, varithenaCostPerProc:  270,  // IS!B13, IS!F51 = F47+150
   postProcedureSupport: 17.49,
+} as const
+
+/* ── Channel Acquisition Block (v11 — Phase F) ───────────────── */
+// Source: SC rows 200-215. Blended CPL = 1/SUMPRODUCT(Spend%, 1/CPL) = $51.
+
+export const CHANNEL_BLOCK = {
+  channels: [
+    { name: 'Google Ads',     spendPct: 0.50, cpl: 65 },
+    { name: 'Meta Ads',       spendPct: 0.25, cpl: 55 },
+    { name: 'Retargeting',    spendPct: 0.10, cpl: 40 },
+    { name: 'Brand / Direct', spendPct: 0.10, cpl: 25 },
+    { name: 'Other',          spendPct: 0.05, cpl: 70 },
+  ],
+  attribution: 'last-touch' as const,
+  /** Derived blended CPL = 1 / SUMPRODUCT(spendPct, 1/cpl) ≈ $51 */
+  get blendedCpl(): number {
+    return Math.round(1 / this.channels.reduce((sum, c) => sum + c.spendPct / c.cpl, 0))
+  },
 } as const
 
 const DOWNSIDE: ScenarioConfig = {
@@ -80,15 +117,15 @@ const DOWNSIDE: ScenarioConfig = {
 
 const CONSERVATIVE: ScenarioConfig = {
   label: 'Conservative / Base',
-  matureCpl: 51,
-  matureContactRate: 0.40,
-  matureBookingRate: 0.60,
-  matureShowRate: 0.78,
-  matureTreatmentConv: 0.65,
-  procsPerPatient: 2.9,
-  maxCapacityPerMonth: 140,
-  y2ProcGrowthRate: 0.50,
-  y3ProcGrowthRate: 0.32,
+  matureCpl: 51,               // SC!D7 — channel-derived blended CPL
+  matureContactRate: 0.40,     // SC!D8
+  matureBookingRate: 0.60,     // SC!D9
+  matureShowRate: 0.78,        // SC!D10
+  matureTreatmentConv: 0.65,   // SC!D11
+  procsPerPatient: 3.5,        // SC!D12 — procedures per treated episode
+  maxCapacityPerMonth: 146,    // SC!D45
+  y2ProcGrowthRate: 0.39,      // SC!D37
+  y3ProcGrowthRate: 0.40,      // SC!D38
   y2MarketingAnnual: 180_000,
   y3MarketingAnnual: 150_000,
   y2PhysicianSalary: 200_000,
@@ -103,9 +140,9 @@ const CONSERVATIVE: ScenarioConfig = {
     { month: "Apr '26", marketingSpend: 10000, cpl: 54, contactRate: 0.39, bookingRate: 0.59, showRate: 0.78, treatmentConv: 0.64, commercialPct: 0.85 },
     { month: "May '26", marketingSpend: 12000, cpl: 52, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
     { month: "Jun '26", marketingSpend: 14000, cpl: 52, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
-    { month: "Jul '26", marketingSpend: 16000, cpl: 51, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
-    { month: "Aug '26", marketingSpend: 18000, cpl: 51, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
-    { month: "Sep '26", marketingSpend: 20000, cpl: 51, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
+    { month: "Jul '26", marketingSpend: 22000, cpl: 51, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
+    { month: "Aug '26", marketingSpend: 24000, cpl: 51, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
+    { month: "Sep '26", marketingSpend: 26000, cpl: 51, contactRate: 0.40, bookingRate: 0.60, showRate: 0.78, treatmentConv: 0.65, commercialPct: 0.85 },
   ],
 }
 
