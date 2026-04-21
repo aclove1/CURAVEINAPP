@@ -278,12 +278,19 @@ export function calcPLMonth(month: number, a: Assumptions): PLMonth {
 }
 
 /* ── Year-over-year conversion rate improvements ─────────── */
+// v12: raised contactRate cap from 0.55 → 0.80 to accommodate the new
+// source-mix composite (Aggressive Y1 = 0.68; with Y2+Y3 boost compounds to ~0.86,
+// clamped at 0.80). Added pathwayCompletion to the boost list — operationally
+// this improves with retention infrastructure (financial counselor, auto-rebook).
+// procsPerPatient is NOT boosted directly; it's derived live from expected×completion
+// via effectiveProcsPerPatient() so the pathway-completion boost flows through.
 
 const CONVERSION_CAPS = {
-  contactRate: 0.55,
-  bookingRate: 0.70,
-  showRate: 0.85,
-  treatmentConversion: 0.75,
+  contactRate: 0.80,           // v12: was 0.55 (too low for source-mix composite)
+  bookingRate: 0.75,           // v12: was 0.70 — referral-heavy mix can exceed
+  showRate: 0.92,              // v12: was 0.85 — 3-touch confirmation protocols reach 90%+
+  treatmentConversion: 0.78,   // v12: was 0.75 — unchanged floor; slight headroom
+  pathwayCompletion: 0.97,     // v12 NEW: saturation ceiling for full-pathway completion
 }
 
 const Y2_IMPROVEMENT = 0.10
@@ -309,6 +316,7 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
     bookingRate: boostScenarioValues(a.bookingRate, Y2_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
     showRate: boostScenarioValues(a.showRate, Y2_IMPROVEMENT, CONVERSION_CAPS.showRate),
     treatmentConversion: boostScenarioValues(a.treatmentConversion, Y2_IMPROVEMENT, CONVERSION_CAPS.treatmentConversion),
+    pathwayCompletion: boostScenarioValues(a.pathwayCompletion, Y2_IMPROVEMENT, CONVERSION_CAPS.pathwayCompletion),
   }
   if (year === 2) return y2
   return {
@@ -317,6 +325,7 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
     bookingRate: boostScenarioValues(y2.bookingRate, Y3_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
     showRate: boostScenarioValues(y2.showRate, Y3_IMPROVEMENT, CONVERSION_CAPS.showRate),
     treatmentConversion: boostScenarioValues(y2.treatmentConversion, Y3_IMPROVEMENT, CONVERSION_CAPS.treatmentConversion),
+    pathwayCompletion: boostScenarioValues(y2.pathwayCompletion, Y3_IMPROVEMENT, CONVERSION_CAPS.pathwayCompletion),
   }
 }
 
