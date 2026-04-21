@@ -1,0 +1,142 @@
+{
+  "commercial_multiplier": {
+    "sheet": "SC",
+    "cell": "F15",
+    "value": 1.496
+  },
+  "govt_payer_mix": {
+    "sheet": "SC",
+    "cell": "F16",
+    "value": 0.15
+  },
+  "commercial_payer_mix": {
+    "sheet": "SC",
+    "cell": "F17",
+    "value": 0.85
+  },
+  "blended_rate": {
+    "sheet": "SC",
+    "cell": "F18",
+    "value": 2002
+  },
+  "cpt_weighted_base": {
+    "sheet": "SC",
+    "cell": "E130",
+    "value": 1408
+  },
+  "max_capacity": {
+    "sheet": "SC",
+    "cell": "D45",
+    "value": 146
+  },
+  "blended_cpl": {
+    "sheet": "SC",
+    "cell": "D7",
+    "value": 51
+  },
+  "contact_rate": {
+    "sheet": "SC",
+    "cell": "D8",
+    "value": 0.530,
+    "note": "v12: derived from Lead Source Mix composite (was 0.4 hardcoded)"
+  },
+  "booking_rate": {
+    "sheet": "SC",
+    "cell": "D9",
+    "value": 0.6
+  },
+  "show_rate": {
+    "sheet": "SC",
+    "cell": "D10",
+    "value": 0.78
+  },
+  "treatment_conversion": {
+    "sheet": "SC",
+    "cell": "D11",
+    "value": 0.65
+  },
+  "procs_per_episode": {
+    "sheet": "SC",
+    "cell": "D12",
+    "value": 3.4,
+    "note": "v12: derived = expected_pathway_procs × pathway_completion (was 3.5 hardcoded)"
+  },
+  "expected_pathway_procs": {
+    "sheet": "SC",
+    "cell": "D224",
+    "value": 4.0,
+    "note": "v12 NEW: clinical norm for full bilateral CVI plan (RFA/VenaSeal × 2 + sclero per leg)"
+  },
+  "pathway_completion": {
+    "sheet": "SC",
+    "cell": "D225",
+    "value": 0.85,
+    "note": "v12 NEW: % of treated patients who complete full plan (Down 65 / Base 85 / Agg 95)"
+  },
+  "lead_source_mix_composite_contact_rate": {
+    "sheet": "Lead Source Mix",
+    "cell": "C12",
+    "value": 0.530,
+    "note": "v12 NEW: composite contact rate, Σ (volumeShare × contactRate) across 5 sources — Base scenario"
+  },
+  "y2_growth": {
+    "sheet": "SC",
+    "cell": "D37",
+    "value": 0.39
+  },
+  "y3_growth": {
+    "sheet": "SC",
+    "cell": "D38",
+    "value": 0.4
+  },
+  "bcbs_share": {
+    "sheet": "SC",
+    "cell": "B154",
+    "value": 0.3
+  },
+  "bcbs_multiplier": {
+    "sheet": "SC",
+    "cell": "C154",
+    "value": 1.3
+  },
+  "aetna_uhc_cigna_multiplier": {
+    "sheet": "SC",
+    "cell": "C155",
+    "value": 1.58
+  },
+  "venaseal_mix": {
+    "sheet": "IS",
+    "cell": "B10",
+    "value": 0.65
+  },
+  "rfa_mix": {
+    "sheet": "IS",
+    "cell": "B11",
+    "value": 0.1
+  },
+  "sclero_mix": {
+    "sheet": "IS",
+    "cell": "B12",
+    "value": 0
+  },
+  "varithena_mix": {
+    "sheet": "IS",
+    "cell": "B13",
+    "value": 0.25
+  },
+  "varithena_cost_proc": {
+    "sheet": "IS",
+    "cell": "F51",
+    "value": 270.14575
+  },
+  "venaseal_pts_per_kit": {
+    "sheet": "IS",
+    "cell": "B8",
+    "value": 2.5
+  },
+  "venaseal_kit_cost": {
+    "sheet": "IS",
+    "cell": "D16",
+    "value": 0.4
+  }
+}

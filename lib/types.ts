@@ -42,6 +42,17 @@ export type MarketPayerMix = {
   commercial: number
 }
 
+// Lead source segmentation — seeded constant, not user-editable.
+// Composite contact rate = Σ (volumeShare × contactRate) per scenario.
+// Source: CuraVein_Integrated_v12.xlsx → "Lead Source Mix" tab (rows 5–9).
+export interface LeadSource {
+  id: string
+  name: string
+  volumeShare: ScenarioValues  // share of total leads, must sum to 1.0 within each scenario
+  contactRate: ScenarioValues  // probability of reaching a lead from this source
+  note: string
+}
+
 export interface Assumptions {
   scenario: Scenario
   market: Market
@@ -50,7 +61,11 @@ export interface Assumptions {
   bookingRate: ScenarioValues
   showRate: ScenarioValues
   treatmentConversion: ScenarioValues
-  procsPerPatient: ScenarioValues
+  procsPerPatient: ScenarioValues  // DERIVED at init = expectedPathwayProcs × pathwayCompletion (see defaults.ts)
+  // v12: Pathway Economics — replaces flat procsPerPatient input.
+  // procsPerPatient is now derived so that v11 callers keep working unchanged.
+  expectedPathwayProcs: ScenarioValues  // clinical norm for full bilateral CVI plan (~4.0)
+  pathwayCompletion: ScenarioValues     // % of treated patients who complete the full plan
   maxCapacityPerMonth: number
   medicareRate: ScenarioValues
   commercialMultiplier: ScenarioValues

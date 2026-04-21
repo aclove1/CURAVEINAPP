@@ -7,11 +7,12 @@ import {
 } from 'recharts'
 import { useRouter } from 'next/navigation'
 import { useModelStore } from '@/lib/store'
-import { calcFunnelMonth, adjustAssumptionsForYear } from '@/lib/model'
+import { calcFunnelMonth, adjustAssumptionsForYear, effectiveProcsPerPatient } from '@/lib/model'
 import { fmtNumber, fmtPct, fmtCurrency, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { getCitationById } from '@/lib/citations'
+import { LEAD_SOURCE_MIX, calcCompositeContactRate } from '@/lib/defaults'
 
 const HEADER_CITATIONS: Record<string, string> = {
   Contacts: 'contactRate',
@@ -128,6 +129,109 @@ export default function FunnelPage() {
           <KpiCard label="Avg Monthly Procedures" value={avgMonthly.toFixed(1)} />
           <KpiCard label="Peak Month" value={fmtNumber(peakMonth)} sub="procedures" />
           <KpiCard label="Months at Capacity" value={`${monthsAtCapacity} / 12`} highlight={monthsAtCapacity > 3} />
+        </div>
+
+        {/* v12 — Lead Source Mix (seeded, read-only). Composite contact rate seeds the Funnel. */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-800">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-300">
+                Lead Source Mix
+                <span className="ml-2 text-[10px] font-normal text-gray-500 uppercase tracking-wider">v12 · seeded</span>
+              </h2>
+              <div className="text-xs text-gray-400">
+                Composite contact rate (active scenario):{' '}
+                <span className="text-[#5faaa6] font-semibold">
+                  {fmtPct(calcCompositeContactRate(assumptions.scenario))}
+                </span>
+                <span className="ml-2 text-gray-500">
+                  → effective procs/patient: <span className="text-gray-300">{effectiveProcsPerPatient(assumptions).toFixed(2)}</span>
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1.5">
+              A single contact rate hides what actually drives revenue. Composite = Σ (volume share × per-source contact rate).
+              Shifting volume from paid social → physician referral lifts the composite by 2–3 points and adds ~5–10% revenue.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-950 text-gray-500 uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Source</th>
+                  <th className="px-3 py-2 text-right font-medium">Volume %</th>
+                  <th className="px-3 py-2 text-right font-medium">Contact Rate</th>
+                  <th className="px-3 py-2 text-right font-medium">Contribution</th>
+                  <th className="px-4 py-2 text-left font-medium">Note</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-300">
+                {LEAD_SOURCE_MIX.map((s) => {
+                  const sc = assumptions.scenario
+                  const v = s.volumeShare[sc]
+                  const c = s.contactRate[sc]
+                  return (
+                    <tr key={s.id} className="border-t border-gray-800">
+                      <td className="px-4 py-2 font-medium text-white">{s.name}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtPct(v)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtPct(c)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-[#5faaa6]">{fmtPct(v * c)}</td>
+                      <td className="px-4 py-2 text-gray-500 italic">{s.note}</td>
+                    </tr>
+                  )
+                })}
+                <tr className="border-t border-gray-700 bg-gray-950/60 font-semibold">
+                  <td className="px-4 py-2 text-gray-400 uppercase tracking-wider text-[10px]">Composite</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-gray-400">
+                    {fmtPct(LEAD_SOURCE_MIX.reduce((a, s) => a + s.volumeShare[assumptions.scenario], 0))}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#5faaa6]">
+                    {fmtPct(calcCompositeContactRate(assumptions.scenario))}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#5faaa6]">
+                    {fmtPct(calcCompositeContactRate(assumptions.scenario))}
+                  </td>
+                  <td className="px-4 py-2 text-gray-500 italic">Σ across 5 sources — feeds funnel contact rate</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* v12 — Pathway Economics summary */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-300">
+              Pathway Economics
+              <span className="ml-2 text-[10px] font-normal text-gray-500 uppercase tracking-wider">v12</span>
+            </h2>
+            <div className="text-xs text-gray-500">
+              Treatment Conversion (Shows → ≥1 procedure) is the gate; pathway completion drives revenue per patient.
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Expected Pathway Procs</div>
+              <div className="text-xl font-semibold text-white mt-1">
+                {assumptions.expectedPathwayProcs[assumptions.scenario].toFixed(1)}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">Bilateral CVI plan: 2 ablations + sclero per leg</div>
+            </div>
+            <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Pathway Completion %</div>
+              <div className="text-xl font-semibold text-white mt-1">
+                {fmtPct(assumptions.pathwayCompletion[assumptions.scenario])}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">Drops to 65% w/ weak counseling; 95% w/ active rebook</div>
+            </div>
+            <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Effective Procs / Patient</div>
+              <div className="text-xl font-semibold text-[#5faaa6] mt-1">
+                {effectiveProcsPerPatient(assumptions).toFixed(2)}
+              </div>
+              <div className="text-[11px] text-gray-500 mt-1">= Expected × Completion. Drives revenue/patient.</div>
+            </div>
+          </div>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">

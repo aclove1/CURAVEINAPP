@@ -113,6 +113,20 @@ export function calcVarithenaCostPerProc(a: Assumptions): number {
   return a.scleroSupplyCost + a.varithenaDrugCost  // $120 + $150 = $270
 }
 
+/* ── v12 ── Pathway Economics: effective procs/patient ─────
+   Effective procs = Expected Full Pathway Procs × Pathway Completion %.
+   Used so that if a caller updates expectedPathwayProcs or pathwayCompletion
+   live (e.g., scenario page slider), calcFunnelMonth stays in sync without
+   the caller needing to recompute procsPerPatient manually.
+   Falls back to a.procsPerPatient if pathway fields are absent (legacy).    */
+
+export function effectiveProcsPerPatient(a: Assumptions, scenario: string = a.scenario): number {
+  if (a.expectedPathwayProcs && a.pathwayCompletion) {
+    return sv(a.expectedPathwayProcs, scenario) * sv(a.pathwayCompletion, scenario)
+  }
+  return sv(a.procsPerPatient, scenario)
+}
+
 /* ── Funnel ───────────────────────────────────────────────── */
 
 export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
@@ -124,7 +138,7 @@ export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
   const booked = Math.round(contacts * sv(a.bookingRate, a.scenario))
   const shows = Math.round(booked * sv(a.showRate, a.scenario))
   const treated = Math.round(shows * sv(a.treatmentConversion, a.scenario))
-  const rawProcs = Math.round(treated * sv(a.procsPerPatient, a.scenario))
+  const rawProcs = Math.round(treated * effectiveProcsPerPatient(a))
   const cappedProcs = Math.min(rawProcs, a.maxCapacityPerMonth)
   const utilization = cappedProcs / a.maxCapacityPerMonth
   const excessDemand = Math.max(0, rawProcs - a.maxCapacityPerMonth)
@@ -307,28 +321,32 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
 }
 
 /* ── Annual P&L (funnel-driven) ───────────────────────────── */
+// Annual totals are summed directly from monthly P&L so that the P&L page
+// "Monthly Y1" and "3-Year Annual" views reconcile exactly. Prior versions
+// used a hardcoded FIXED_OPEX = $706,000 that omitted marketing and ignored
+// the management fee, overstating EBITDA by the mgmt fee + marketing spend.
 
 export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
-  const FIXED_OPEX = 706000
   const adj = adjustAssumptionsForYear(year, a)
 
   let totalProcs = 0
   let grossRevenue = 0
   let totalCOGS = 0
+  let totalOpex = 0
 
   for (let m = 1; m <= 12; m++) {
     const pl = calcPLMonth(m, adj)
     totalProcs += pl.procs
     grossRevenue += pl.grossRevenue
     totalCOGS += pl.totalCOGS
+    totalOpex += pl.totalOpex
   }
 
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
   const netRevenue = grossRevenue + managementFee
   const grossProfit = netRevenue - totalCOGS
   const grossMargin = netRevenue > 0 ? grossProfit / netRevenue : 0
-  const totalOpex = FIXED_OPEX
-  const ebitda = roundCurrency(grossRevenue - totalCOGS - FIXED_OPEX)
+  const ebitda = roundCurrency(grossProfit - totalOpex)
   const ebitdaMargin = netRevenue > 0 ? ebitda / netRevenue : 0
 
   return { year, grossRevenue, managementFee, netRevenue, totalCOGS, grossProfit, grossMargin, totalOpex, ebitda, ebitdaMargin, totalProcs }
@@ -393,7 +411,7 @@ export function calcKeyMetrics(a: Assumptions): KeyMetrics {
   const revenuePerProc = totalProcs > 0 ? totalGrossRevenue / totalProcs : 0
   const cogsPerProc = totalProcs > 0 ? totalCOGS / totalProcs : 0
   const stabilizedMonthlyEbitda = monthlyEbitdas[11] ?? 0
-  const procsPerPatient = sv(a.procsPerPatient, a.scenario)
+  const procsPerPatient = effectiveProcsPerPatient(a)  // v12: derived from pathway economics
   const totalPatients = procsPerPatient > 0 ? totalProcs / procsPerPatient : 0
   const revenuePerPatient = totalPatients > 0 ? totalGrossRevenue / totalPatients : 0
   const costPerAcquisition = totalTreated > 0 ? totalMarketing / totalTreated : 0

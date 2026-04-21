@@ -44,7 +44,7 @@ export const REIMBURSEMENT = {
   matureCommercialPct: 0.85,    // SC!F17 — Forney market (85% commercial)
   matureBlendedRate: 2002,      // SC!F18 = ROUND(1408×(0.15+0.85×1.496),0)
   mgmtFeeRate: 0.08,
-  procsPerEpisode: 3.5,         // SC!F12 — procedures per treated episode (Base)
+  procsPerEpisode: 3.4,         // v12: derived = Expected Pathway Procs (4.0) × Pathway Completion (85%) — was 3.5
 } as const
 
 // COGS inputs are in lib/defaults.ts (vsMix, rfMix, varithenaShare, etc.).
@@ -54,11 +54,11 @@ export const REIMBURSEMENT = {
 const DOWNSIDE: ScenarioConfig = {
   label: 'Downside',
   matureCpl: 50,
-  matureContactRate: 0.35,
+  matureContactRate: 0.379,    // v12 LEAD_SOURCE_MIX composite (Down) — was 0.35
   matureBookingRate: 0.54,
   matureShowRate: 0.75,
   matureTreatmentConv: 0.65,
-  procsPerPatient: 2.9,
+  procsPerPatient: 2.6,        // v12: pathway 4.0 × 65% — was 2.9
   maxCapacityPerMonth: 120,
   y2ProcGrowthRate: 0.464,
   y3ProcGrowthRate: 0.749,
@@ -85,11 +85,11 @@ const DOWNSIDE: ScenarioConfig = {
 const CONSERVATIVE: ScenarioConfig = {
   label: 'Conservative / Base',
   matureCpl: 51,               // SC!D7 — channel-derived blended CPL
-  matureContactRate: 0.40,     // SC!D8
+  matureContactRate: 0.530,    // v12 LEAD_SOURCE_MIX composite (Base) — was 0.40
   matureBookingRate: 0.60,     // SC!D9
   matureShowRate: 0.78,        // SC!D10
   matureTreatmentConv: 0.65,   // SC!D11
-  procsPerPatient: 3.5,        // SC!D12 — procedures per treated episode
+  procsPerPatient: 3.4,        // v12: pathway 4.0 × 85% — was 3.5
   maxCapacityPerMonth: 146,    // SC!D45
   y2ProcGrowthRate: 0.39,      // SC!D37
   y3ProcGrowthRate: 0.40,      // SC!D38
