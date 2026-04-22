@@ -1,4 +1,21 @@
-import type { Assumptions, LeadSource, MarketPayerMix, Scenario, ScenarioValues } from './types'
+import type {
+  Assumptions,
+  CapacityModel,
+  ComplexityDistribution,
+  LeadSource,
+  MarketPayerMix,
+  Scenario,
+  ScenarioValues,
+  UtilizationRamp,
+} from './types'
+
+// ─── v12 HARDENING FEATURE FLAG ──────────────────────────────────────────
+// Gated ON in Vercel preview + local dev; OFF in production until promoted.
+// Source of truth: process.env.VERCEL_ENV (built-in, not custom config).
+// Uses VERCEL_ENV only — no env var changes required.
+export const V12_HARDENING_ENABLED: boolean =
+  typeof process !== 'undefined' &&
+  (process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production' && process.env.VERCEL_ENV !== 'production')
 
 // Source: SC!B142 market selector → SC!B145-B149.
 // New Braunfels (Comal Co.): 18% age 65+ → 25% govt payer mix.
@@ -14,40 +31,42 @@ export const MARKET_PAYER_MIX: Record<string, MarketPayerMix> = {
 // Composite contact rate seeds DEFAULT_ASSUMPTIONS.contactRate per scenario.
 // Verified composites: Down 37.9% / Base 53.0% / Aggressive 68.1%.
 // ─────────────────────────────────────────────────────────────────────────────
+// ISOLATED DOWNSIDE RECALIBRATION: Conservative values = Base values below.
+// Funnel mix is not the downside lever — isolated downside is reimbursement only.
 export const LEAD_SOURCE_MIX: LeadSource[] = [
   {
     id: 'paidSearch',
     name: 'Paid Search (Google)',
-    volumeShare: { conservative: 0.45, base: 0.40, aggressive: 0.32 },
-    contactRate: { conservative: 0.30, base: 0.42, aggressive: 0.55 },
+    volumeShare: { conservative: 0.40, base: 0.40, aggressive: 0.32 },
+    contactRate: { conservative: 0.42, base: 0.42, aggressive: 0.55 },
     note: 'High-intent CVI keywords. Contact rate driven by speed-to-lead (<5 min = 2–3× vs >1 hr).',
   },
   {
     id: 'paidSocial',
     name: 'Paid Social (Meta)',
-    volumeShare: { conservative: 0.25, base: 0.22, aggressive: 0.18 },
-    contactRate: { conservative: 0.22, base: 0.35, aggressive: 0.45 },
+    volumeShare: { conservative: 0.22, base: 0.22, aggressive: 0.18 },
+    contactRate: { conservative: 0.35, base: 0.35, aggressive: 0.45 },
     note: 'Symptom-aware cold audience. Requires retargeting + SMS nurture to lift contact.',
   },
   {
     id: 'organic',
     name: 'Organic Web / SEO',
-    volumeShare: { conservative: 0.15, base: 0.18, aggressive: 0.20 },
-    contactRate: { conservative: 0.45, base: 0.60, aggressive: 0.72 },
+    volumeShare: { conservative: 0.18, base: 0.18, aggressive: 0.20 },
+    contactRate: { conservative: 0.60, base: 0.60, aggressive: 0.72 },
     note: 'Branded + CVI-symptom SEO; higher intent than paid social. Compounds with authority.',
   },
   {
     id: 'referral',
     name: 'Physician Referral / Direct',
-    volumeShare: { conservative: 0.10, base: 0.15, aggressive: 0.20 },
-    contactRate: { conservative: 0.82, base: 0.90, aggressive: 0.94 },
+    volumeShare: { conservative: 0.15, base: 0.15, aggressive: 0.20 },
+    contactRate: { conservative: 0.90, base: 0.90, aggressive: 0.94 },
     note: 'PCPs, cardiology, wound care, repeat caller. Near-guaranteed contact; low CPL.',
   },
   {
     id: 'repeat',
     name: 'Repeat / Reactivation',
     volumeShare: { conservative: 0.05, base: 0.05, aggressive: 0.10 },
-    contactRate: { conservative: 0.78, base: 0.85, aggressive: 0.92 },
+    contactRate: { conservative: 0.85, base: 0.85, aggressive: 0.92 },
     note: '2nd-leg, prior self-pay, referrals of referrals. Requires active reactivation SMS/email.',
   },
 ]
@@ -74,12 +93,75 @@ export function leadSourceVolumeChecks(mix: LeadSource[] = LEAD_SOURCE_MIX): Rec
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// v12 HARDENING (Phase 2) ── structural constants mirroring Scenario Controls
+// SC rows 250-321. Gated by V12_HARDENING_ENABLED.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Procedure Complexity Distribution — SC rows 254-261
+ *  ISOLATED DOWNSIDE: Conservative = Base (complexity is not the downside lever). */
+export const COMPLEXITY_DISTRIBUTION: ScenarioValues<ComplexityDistribution> = {
+  conservative: { pctLow: 0.25, pctMid: 0.50, pctHigh: 0.25, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
+  base:         { pctLow: 0.25, pctMid: 0.50, pctHigh: 0.25, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
+  aggressive:   { pctLow: 0.15, pctMid: 0.40, pctHigh: 0.45, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
+}
+
+export function calcWeightedProcsFromDistribution(d: ComplexityDistribution): number {
+  return d.pctLow * d.meanLowProcs + d.pctMid * d.meanMidProcs + d.pctHigh * d.meanHighProcs
+}
+
+/** Structured Capacity Model — SC rows 276-280
+ *  ISOLATED DOWNSIDE: Conservative = Base (capacity is not the downside lever). */
+export const CAPACITY_MODEL: ScenarioValues<CapacityModel> = {
+  conservative: { procDaysPerMonth: 18, procsPerDay: 7, noShowRate: 0.10, cancellationRate: 0.05 },
+  base:         { procDaysPerMonth: 18, procsPerDay: 7, noShowRate: 0.10, cancellationRate: 0.05 },
+  aggressive:   { procDaysPerMonth: 20, procsPerDay: 8, noShowRate: 0.05, cancellationRate: 0.03 },
+}
+
+export function calcNetCapacity(c: CapacityModel): number {
+  return c.procDaysPerMonth * c.procsPerDay * (1 - c.noShowRate) * (1 - c.cancellationRate)
+}
+
+/** Utilization Ramp — SC rows 294-296
+ *  ISOLATED DOWNSIDE: Conservative = Base (ramp is not the downside lever). */
+export const UTILIZATION_RAMP: ScenarioValues<UtilizationRamp> = {
+  conservative: { y1: 0.70, y2: 0.85, y3: 0.95 },
+  base:         { y1: 0.70, y2: 0.85, y3: 0.95 },
+  aggressive:   { y1: 0.75, y2: 0.90, y3: 1.00 },
+}
+
+/** Net Realization Factor — SC row 309 */
+export const NET_REALIZATION_FACTOR: ScenarioValues = {
+  conservative: 0.88,
+  base:         0.92,
+  aggressive:   0.95,
+}
+
+/** Targeted Acquisition Mix — SC row 319 (commercial share)
+ *  ISOLATED DOWNSIDE: Conservative slightly softer (68% not 65%) — mild drift toward Medicare. */
+export const TARGETED_COMMERCIAL_SHARE: ScenarioValues = {
+  conservative: 0.68,
+  base:         0.75,
+  aggressive:   0.85,
+}
+
+/** Derived: weighted procs/patient per scenario (replaces flat 4.0 when flag on) */
+const DERIVED_WEIGHTED_PROCS: ScenarioValues = {
+  conservative: calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.conservative),
+  base:         calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.base),
+  aggressive:   calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.aggressive),
+}
+
 // v12 ── PATHWAY ECONOMICS (replaces flat procsPerPatient input)
 // Effective Procedures per Treated Patient = Expected Pathway Procs × Pathway Completion %.
-// Expected = clinical norm for bilateral CVI (RFA/VenaSeal × 2 + sclero per leg) ~4.0.
-// Source: CuraVein_Integrated_v12.xlsx → SC!C224:E226.
-const EXPECTED_PATHWAY_PROCS: ScenarioValues = { conservative: 4.0, base: 4.0, aggressive: 4.0 }
-const PATHWAY_COMPLETION:    ScenarioValues = { conservative: 0.65, base: 0.85, aggressive: 0.95 }
+// v12 hardening: when V12_HARDENING_ENABLED, Expected Pathway Procs derives from
+// COMPLEXITY_DISTRIBUTION (weighted mean of low/mid/high buckets) instead of flat 4.0.
+// Source: CuraVein_Integrated_v12.xlsx → SC!C224:E226 (pre-hardening) / SC!C263:E263 (post).
+const EXPECTED_PATHWAY_PROCS: ScenarioValues = V12_HARDENING_ENABLED
+  ? DERIVED_WEIGHTED_PROCS                                            // Down 2.95 / Base 3.62 / Up 4.33
+  : { conservative: 4.0, base: 4.0, aggressive: 4.0 }                 // legacy flat 4.0
+// ISOLATED DOWNSIDE: Pathway completion Conservative = Base (not a downside lever).
+const PATHWAY_COMPLETION:    ScenarioValues = { conservative: 0.85, base: 0.85, aggressive: 0.95 }
 function effectiveProcs(scenario: Scenario): number {
   return EXPECTED_PATHWAY_PROCS[scenario] * PATHWAY_COMPLETION[scenario]
 }
@@ -95,18 +177,26 @@ const DERIVED_CONTACT_RATE = compositeContactRates()
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   scenario: 'base',
   market: 'newBraunfels',
-  cpl: { conservative: 75, base: 60, aggressive: 45 },
-  // v12 — DERIVED from LEAD_SOURCE_MIX composite. Was flat {0.30, 0.40, 0.50}.
-  // Composites: Down 37.9% / Base 53.0% / Aggressive 68.1%.
-  contactRate: DERIVED_CONTACT_RATE,
-  bookingRate: { conservative: 0.50, base: 0.60, aggressive: 0.70 },
-  showRate: { conservative: 0.70, base: 0.78, aggressive: 0.85 },
-  treatmentConversion: { conservative: 0.55, base: 0.65, aggressive: 0.75 },
+  // ISOLATED DOWNSIDE RECALIBRATION: Conservative = Base across funnel/pathway/capacity.
+  // Conservative differs from Base ONLY on: netRealizationFactor (88% vs 92%) +
+  // targetedCommercialShare (68% vs 75%). This prevents compound-negative pessimism
+  // and guarantees Y3 Conservative EBITDA > 0.
+  cpl: { conservative: 60, base: 60, aggressive: 45 },
+  contactRate: DERIVED_CONTACT_RATE,  // composite: Conservative=Base=53.0% (see LEAD_SOURCE_MIX below)
+  bookingRate: { conservative: 0.60, base: 0.60, aggressive: 0.70 },
+  showRate: { conservative: 0.78, base: 0.78, aggressive: 0.85 },
+  treatmentConversion: { conservative: 0.65, base: 0.65, aggressive: 0.75 },
   // v12 — DERIVED = expectedPathwayProcs × pathwayCompletion. Was flat {3.0, 3.5, 4.0}.
   // Effective: Down 2.60 / Base 3.40 / Aggressive 3.80. Fixes v11 inversion (Aggressive < Base).
   procsPerPatient: DERIVED_PROCS_PER_PATIENT,
   expectedPathwayProcs: EXPECTED_PATHWAY_PROCS,
   pathwayCompletion: PATHWAY_COMPLETION,
+  // v12 hardening fields (used when V12_HARDENING_ENABLED):
+  complexityDistribution: COMPLEXITY_DISTRIBUTION,
+  capacityModel: CAPACITY_MODEL,
+  utilizationRamp: UTILIZATION_RAMP,
+  netRealizationFactor: NET_REALIZATION_FACTOR,
+  targetedCommercialShare: TARGETED_COMMERCIAL_SHARE,
   maxCapacityPerMonth: 146,
   medicareRate: { conservative: 1408, base: 1408, aggressive: 1408 }, // SC!E130 — CPT weighted base (was 1147)
   // Commercial multiplier v11: BCBS 30%×1.30 + Aetna/UHC/Cigna 70%×1.58 = 1.496 (SC!D156→F15)
@@ -133,9 +223,8 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   // Used in calcVarithenaCostPerProc as: scleroSupplyCost + varithenaDrugCost = $270
   scleroSupplyCost: 120,     // IS!F47 total (was 45)
   marketingSpend: {
-    // v11 SC conservative ramp (scaled ~85% of base)
-    conservative: [3000, 3500, 4000, 5000, 6000, 7500, 9000, 10000, 12000, 18000, 20000, 22000],
-    // v11 SC base ramp (Oct–Sep)
+    // ISOLATED DOWNSIDE: Conservative marketing spend = Base (not a downside lever).
+    conservative: [3500, 4000, 4500, 5500, 7000, 8500, 10000, 12000, 14000, 22000, 24000, 26000],
     base:         [3500, 4000, 4500, 5500, 7000, 8500, 10000, 12000, 14000, 22000, 24000, 26000],
     aggressive:   [6000, 8000, 11000, 14000, 17000, 20000, 22000, 24000, 26000, 30000, 32000, 34000],
   },
@@ -150,8 +239,9 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   emr: 800,
   billing: 1500,
   managementFeeRate: 0.08,
-  y2VolumeGrowth: { conservative: 0.30, base: 0.39, aggressive: 0.55 },
-  y3VolumeGrowth: { conservative: 0.30, base: 0.40, aggressive: 0.55 },
+  // ISOLATED DOWNSIDE: Conservative = Base for Y2/Y3 growth (not a downside lever).
+  y2VolumeGrowth: { conservative: 0.39, base: 0.39, aggressive: 0.55 },
+  y3VolumeGrowth: { conservative: 0.40, base: 0.40, aggressive: 0.55 },
   varithenaShare: 0.25,      // IS!B13 (was 0.15)
   varithenaRates36465: { aetna: 1320, bcbs: 1450, humana: 1290, uhc: 1380, medicare: 1300 },
   varithenaRates36466: { aetna: 1420, bcbs: 1560, humana: 1380, uhc: 1490, medicare: 1400 },

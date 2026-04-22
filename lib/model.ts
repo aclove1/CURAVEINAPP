@@ -11,7 +11,7 @@ import type {
   AnnualPL,
   KeyMetrics,
 } from './types'
-import { MARKET_PAYER_MIX } from './defaults'
+import { MARKET_PAYER_MIX, V12_HARDENING_ENABLED, calcNetCapacity } from './defaults'
 
 function sv(obj: { conservative: number; base: number; aggressive: number }, scenario: string): number {
   return obj[scenario as keyof typeof obj]
@@ -113,6 +113,40 @@ export function calcVarithenaCostPerProc(a: Assumptions): number {
   return a.scleroSupplyCost + a.varithenaDrugCost  // $120 + $150 = $270
 }
 
+/* ── v12 HARDENING (Phase 2) — Structural helpers ──────────
+   Gated by V12_HARDENING_ENABLED (preview only until promoted). Each helper
+   returns the hardened value if the flag is on, else falls back to the legacy
+   flat Assumptions field. This preserves Y1/Y2/Y3 math when flag is off.    */
+
+/** Effective monthly throughput ceiling for a given year.
+ *  Hardening: net capacity × utilization ramp.
+ *  Legacy: maxCapacityPerMonth (flat 146). */
+export function effectiveMonthlyCapacity(a: Assumptions, year: 1 | 2 | 3 = 1): number {
+  if (!V12_HARDENING_ENABLED) return a.maxCapacityPerMonth
+  const cap = a.capacityModel?.[a.scenario]
+  const ramp = a.utilizationRamp?.[a.scenario]
+  if (!cap || !ramp) return a.maxCapacityPerMonth
+  const net = calcNetCapacity(cap)
+  const util = year === 1 ? ramp.y1 : year === 2 ? ramp.y2 : ramp.y3
+  return net * util
+}
+
+/** Net realization factor applied to gross blended rate.
+ *  Hardening: Down 88% / Base 92% / Up 95%.
+ *  Legacy: 1.0 (no adjustment). */
+export function netRealizationMultiplier(a: Assumptions): number {
+  if (!V12_HARDENING_ENABLED) return 1.0
+  return a.netRealizationFactor?.[a.scenario] ?? 1.0
+}
+
+/** Targeted commercial share (replaces market-demographic mix when flag on).
+ *  Hardening: Down 65% / Base 75% / Up 85%.
+ *  Legacy: a.commercialMix. */
+export function effectiveCommercialShare(a: Assumptions): number {
+  if (!V12_HARDENING_ENABLED) return a.commercialMix
+  return a.targetedCommercialShare?.[a.scenario] ?? a.commercialMix
+}
+
 /* ── v12 ── Pathway Economics: effective procs/patient ─────
    Effective procs = Expected Full Pathway Procs × Pathway Completion %.
    Used so that if a caller updates expectedPathwayProcs or pathwayCompletion
@@ -139,8 +173,10 @@ export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
   const shows = Math.round(booked * sv(a.showRate, a.scenario))
   const treated = Math.round(shows * sv(a.treatmentConversion, a.scenario))
   const rawProcs = Math.round(treated * effectiveProcsPerPatient(a))
+  // v12 HARDENING: a.maxCapacityPerMonth is pre-set by adjustAssumptionsForYear
+  // to (net capacity × utilization ramp) for the active year when flag is on.
   const cappedProcs = Math.min(rawProcs, a.maxCapacityPerMonth)
-  const utilization = cappedProcs / a.maxCapacityPerMonth
+  const utilization = a.maxCapacityPerMonth > 0 ? cappedProcs / a.maxCapacityPerMonth : 0
   const excessDemand = Math.max(0, rawProcs - a.maxCapacityPerMonth)
   return { month, leads, contacts, booked, shows, treated, rawProcs, cappedProcs, utilization, excessDemand, marketingSpend: spend }
 }
@@ -173,7 +209,12 @@ export function calcWeightedMedicareBase(): number {
 export function calcOverallBlendedRate(a: Assumptions): number {
   const medicareBase = calcWeightedMedicareBase()
   const commMultiplier = blendedCommercialMultiplier(a)
-  return Math.round(medicareBase * (a.medicareMix + a.commercialMix * commMultiplier))
+  // v12 HARDENING: use targeted commercial share (Base 75%, Up 85%, Down 65%) when flag on,
+  // then apply net realization factor. Legacy: market-derived commercialMix × 1.0.
+  const commShare = effectiveCommercialShare(a)
+  const govShare = 1 - commShare
+  const gross = medicareBase * (govShare + commShare * commMultiplier)
+  return Math.round(gross * netRealizationMultiplier(a))
 }
 
 /* ── FIX 2 — Month-specific blended rate with credentialing ── */
@@ -182,7 +223,10 @@ function calcMonthBlendedRate(month: number, a: Assumptions): number {
   const medicareBase = calcWeightedMedicareBase()
   const commMultiplier = blendedCommercialMultiplier(a)
   const { govMix, commMix } = getCredentialingMix(month, a)
-  return Math.round(medicareBase * (govMix + commMix * commMultiplier))
+  // v12 HARDENING: credentialing mix still ramps M1-M6; after that, targeted share takes over.
+  // Apply net realization factor uniformly.
+  const gross = medicareBase * (govMix + commMix * commMultiplier)
+  return Math.round(gross * netRealizationMultiplier(a))
 }
 
 /* ── Revenue ──────────────────────────────────────────────── */
@@ -309,9 +353,15 @@ function boostScenarioValues(
 }
 
 export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assumptions {
-  if (year === 1) return a
+  // v12 HARDENING: bake year-specific effective capacity into maxCapacityPerMonth.
+  // Previously a.maxCapacityPerMonth was a flat 146 across all years; now it's
+  // (net capacity × utilization ramp for `year`). Applied in every year including Y1.
+  const withCapacity: Assumptions = V12_HARDENING_ENABLED
+    ? { ...a, maxCapacityPerMonth: Math.round(effectiveMonthlyCapacity(a, year)) }
+    : a
+  if (year === 1) return withCapacity
   const y2 = {
-    ...a,
+    ...withCapacity,
     contactRate: boostScenarioValues(a.contactRate, Y2_IMPROVEMENT, CONVERSION_CAPS.contactRate),
     bookingRate: boostScenarioValues(a.bookingRate, Y2_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
     showRate: boostScenarioValues(a.showRate, Y2_IMPROVEMENT, CONVERSION_CAPS.showRate),
