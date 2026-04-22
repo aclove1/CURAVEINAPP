@@ -8,6 +8,8 @@ import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
 import { SCENARIOS, type ScenarioKey } from '@/lib/scenarioData'
+import { calcAnnualPL } from '@/lib/model'
+import type { Scenario } from '@/lib/types'
 
 const EBITDA_TOOLTIPS: Record<string, string> = {
   'Year 1': 'Ramp year \u2014 funnel building, below capacity',
@@ -63,6 +65,21 @@ const SLIDERS = [
 export default function DashboardPage() {
   const { assumptions, updateAssumption, activeV10Scenario, setV10Scenario } = useModelStore()
   const v10 = useV10Results()
+
+  // ── v12 Excel-aligned P&L widget (calcAnnualPL) ──────────────────────
+  // Maps the dashboard's v10 scenario button to the Assumptions 3-tier enum
+  // so the widget reacts to Downside / Conservative-Base clicks without
+  // mutating global state. Rest of dashboard continues to read from v10
+  // until AUDIT.md C-4 (dashboard engine consolidation) is scoped.
+  const widgetScenario: Scenario =
+    activeV10Scenario === 'downside' ? 'conservative' : 'base'
+  const widgetAssumptions = useMemo(
+    () => ({ ...assumptions, scenario: widgetScenario }),
+    [assumptions, widgetScenario],
+  )
+  const pl1 = useMemo(() => calcAnnualPL(1, widgetAssumptions), [widgetAssumptions])
+  const pl2 = useMemo(() => calcAnnualPL(2, widgetAssumptions), [widgetAssumptions])
+  const pl3 = useMemo(() => calcAnnualPL(3, widgetAssumptions), [widgetAssumptions])
 
   const y1Rev = v10.y1.grossRevenue
   const y2Rev = v10.y2.grossRevenue
@@ -174,6 +191,51 @@ export default function DashboardPage() {
                 </div>
               )
             })}
+          </div>
+
+          {/* v12 — Excel-aligned P&L at currently-selected scenario */}
+          <div className="mt-5 pt-5 border-t border-gray-800">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                3-Year P&amp;L at current sliders · Excel-aligned
+              </h3>
+              <span className="text-[10px] text-gray-500">
+                scenario: <span className="text-[#5faaa6]">{widgetScenario}</span>
+                {' · '}engine: <span className="font-mono">calcAnnualPL</span>
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { label: 'Year 1', pl: pl1 },
+                { label: 'Year 2', pl: pl2 },
+                { label: 'Year 3', pl: pl3 },
+              ] as const).map(({ label, pl }) => (
+                <div key={label} className="bg-gray-950/60 border border-gray-800 rounded-lg p-3">
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">{label}</div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[11px] text-gray-400">Gross Revenue</span>
+                    <span className="text-sm font-mono text-white tabular-nums">{fmtCurrency(pl.grossRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline mt-1">
+                    <span className="text-[11px] text-gray-400">EBITDA</span>
+                    <span className={`text-sm font-mono tabular-nums ${pl.ebitda < 0 ? 'text-red-400' : 'text-[#5faaa6]'}`}>
+                      {fmtCurrency(pl.ebitda)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline mt-0.5">
+                    <span className="text-[10px] text-gray-500">margin</span>
+                    <span className={`text-[10px] tabular-nums ${pl.ebitdaMargin < 0 ? 'text-red-400/70' : 'text-gray-400'}`}>
+                      {fmtPct(pl.ebitdaMargin)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-gray-500 italic">
+              Computed from the Excel-aligned engine (<span className="font-mono">lib/model.ts::calcAnnualPL</span>).
+              May differ from other dashboard revenue widgets that still read the v10 shadow engine
+              — AUDIT.md C-4 (dashboard engine consolidation) is out of scope of this change.
+            </p>
           </div>
         </div>
 
