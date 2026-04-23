@@ -10,12 +10,10 @@ import type {
 } from './types'
 
 // ─── v12 HARDENING FEATURE FLAG ──────────────────────────────────────────
-// Gated ON in Vercel preview + local dev; OFF in production until promoted.
-// Source of truth: process.env.VERCEL_ENV (built-in, not custom config).
-// Uses VERCEL_ENV only — no env var changes required.
-export const V12_HARDENING_ENABLED: boolean =
-  typeof process !== 'undefined' &&
-  (process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production' && process.env.VERCEL_ENV !== 'production')
+// Promoted to production 2026-04-22 after staging verification.
+// Previously gated on VERCEL_ENV (preview-only). To roll back: flip to `false`
+// + rebuild, or restore the env-gated expression in git history.
+export const V12_HARDENING_ENABLED: boolean = true
 
 // Source: SC!B142 market selector → SC!B145-B149.
 // New Braunfels (Comal Co.): 18% age 65+ → 25% govt payer mix.
