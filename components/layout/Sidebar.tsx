@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, SlidersHorizontal, TrendingUp, DollarSign, Package, ChartBar as BarChart3, Activity, FileText, BookOpen } from 'lucide-react'
 
@@ -21,17 +22,24 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 min-h-screen bg-gray-950 flex flex-col border-r border-gray-800">
-      <div className="px-6 py-6 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">CV</span>
-          </div>
+      <Link href="/" className="px-6 py-6 border-b border-gray-800 block hover:bg-gray-900/40 transition-colors">
+        <div className="flex items-center gap-3">
+          <Image
+            src="/branding/curavein-mark.png"
+            alt="CuraVein logo"
+            width={36}
+            height={36}
+            priority
+            className="flex-shrink-0"
+          />
           <div>
-            <div className="text-white font-semibold text-sm leading-none">CuraVein</div>
-            <div className="text-gray-400 text-xs mt-0.5">Flagship Proforma</div>
+            <div className="text-white font-semibold text-base leading-none tracking-tight">
+              CuraVein<span className="text-gray-500 text-[10px] ml-0.5 align-top">™</span>
+            </div>
+            <div className="text-[11px] mt-1" style={{ color: '#A84D2E' }}>Love Your Legs</div>
           </div>
         </div>
-      </div>
+      </Link>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
