@@ -63,16 +63,15 @@ const SLIDERS = [
 ]
 
 export default function DashboardPage() {
-  const { assumptions, updateAssumption, activeV10Scenario, setV10Scenario } = useModelStore()
+  const { assumptions, updateAssumption, activeV10Scenario, setV10Scenario, setScenario } = useModelStore()
   const v10 = useV10Results()
 
   // ── v12 Excel-aligned P&L widget (calcAnnualPL) ──────────────────────
-  // Maps the dashboard's v10 scenario button to the Assumptions 3-tier enum
-  // so the widget reacts to Downside / Conservative-Base clicks without
-  // mutating global state. Rest of dashboard continues to read from v10
-  // until AUDIT.md C-4 (dashboard engine consolidation) is scoped.
-  const widgetScenario: Scenario =
-    activeV10Scenario === 'downside' ? 'conservative' : 'base'
+  // Reads directly from assumptions.scenario (written by the widget's own
+  // 3-scenario toggle below). Independent of activeV10Scenario (legacy v10
+  // engine) which still drives the rest of the dashboard until AUDIT.md
+  // C-4 (engine consolidation) is scoped.
+  const widgetScenario: Scenario = assumptions.scenario
   const widgetAssumptions = useMemo(
     () => ({ ...assumptions, scenario: widgetScenario }),
     [assumptions, widgetScenario],
@@ -80,6 +79,14 @@ export default function DashboardPage() {
   const pl1 = useMemo(() => calcAnnualPL(1, widgetAssumptions), [widgetAssumptions])
   const pl2 = useMemo(() => calcAnnualPL(2, widgetAssumptions), [widgetAssumptions])
   const pl3 = useMemo(() => calcAnnualPL(3, widgetAssumptions), [widgetAssumptions])
+
+  // Widget scenario button labels + order. Sub-labels describe the structural
+  // scenario assumption per v12 hardening (isolated downside, actual market, targeted mix).
+  const WIDGET_SCENARIOS: { key: Scenario; label: string; sub: string }[] = [
+    { key: 'conservative', label: 'Downside',  sub: '65/35 mix · realization 83% · reimbursement pressure' },
+    { key: 'base',         label: 'Base',      sub: '75/25 New Braunfels market · realization 92%' },
+    { key: 'aggressive',   label: 'Upside',    sub: '85/15 via DTC under-65 targeted acquisition' },
+  ]
 
   const y1Rev = v10.y1.grossRevenue
   const y2Rev = v10.y2.grossRevenue
@@ -197,21 +204,45 @@ export default function DashboardPage() {
           <div className="mt-5 pt-5 border-t border-gray-800">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                3-Year P&amp;L at current sliders · Excel-aligned
+                3-Year P&amp;L · Excel-aligned · scenario-toggled
               </h3>
               <span className="text-[10px] text-gray-500">
-                scenario: <span className="text-[#5faaa6]">{widgetScenario}</span>
-                {' · '}engine: <span className="font-mono">calcAnnualPL</span>
+                engine: <span className="font-mono">calcAnnualPL</span> ·
+                {' '}flag: <span className="font-mono text-[#5faaa6]">V12_HARDENING</span>
               </span>
             </div>
+
+            {/* 3-scenario toggle (writes to assumptions.scenario) */}
+            <div className="flex gap-2 mb-3">
+              {WIDGET_SCENARIOS.map(({ key, label, sub }) => (
+                <button
+                  key={key}
+                  onClick={() => setScenario(key)}
+                  className={`flex-1 px-3 py-2 text-left rounded-lg border transition-colors ${
+                    widgetScenario === key
+                      ? 'border-[#5faaa6] bg-[#5faaa6]/10'
+                      : 'border-gray-800 hover:border-gray-700 bg-gray-950/40'
+                  }`}
+                >
+                  <div className={`text-xs font-semibold ${widgetScenario === key ? 'text-[#5faaa6]' : 'text-gray-300'}`}>
+                    {label}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{sub}</div>
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-3 gap-3">
               {([
-                { label: 'Year 1', pl: pl1 },
-                { label: 'Year 2', pl: pl2 },
-                { label: 'Year 3', pl: pl3 },
-              ] as const).map(({ label, pl }) => (
+                { label: 'Year 1', sub: 'ramp', pl: pl1 },
+                { label: 'Year 2', sub: 'partial stabilization', pl: pl2 },
+                { label: 'Year 3', sub: 'steady-state · near-capacity', pl: pl3 },
+              ] as const).map(({ label, sub, pl }) => (
                 <div key={label} className="bg-gray-950/60 border border-gray-800 rounded-lg p-3">
-                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">{label}</div>
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
+                    <span className="text-[9px] text-gray-600 italic">{sub}</span>
+                  </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-[11px] text-gray-400">Gross Revenue</span>
                     <span className="text-sm font-mono text-white tabular-nums">{fmtCurrency(pl.grossRevenue)}</span>
@@ -232,9 +263,14 @@ export default function DashboardPage() {
               ))}
             </div>
             <p className="mt-2 text-[10px] text-gray-500 italic">
-              Computed from the Excel-aligned engine (<span className="font-mono">lib/model.ts::calcAnnualPL</span>).
-              May differ from other dashboard revenue widgets that still read the v10 shadow engine
-              — AUDIT.md C-4 (dashboard engine consolidation) is out of scope of this change.
+              Year 3 stabilized Base case output from the v12 model. Margins shown are modeled
+              targets, not guarantees. Downside = isolated reimbursement pressure
+              (net realization 83% + 65% commercial mix). Upside = 85% commercial mix via
+              DTC under-65 targeted acquisition (symptom-based funnel skews younger, self-referral
+              bias, procedure-eligible population differs from general demographic). Computed from
+              {' '}<span className="font-mono">lib/model.ts::calcAnnualPL</span> — the legacy KPI
+              cards above still read the v10 shadow engine and may differ (~$22K Y1); AUDIT.md C-4
+              consolidation pending.
             </p>
           </div>
         </div>

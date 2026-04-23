@@ -130,17 +130,20 @@ export const UTILIZATION_RAMP: ScenarioValues<UtilizationRamp> = {
   aggressive:   { y1: 0.75, y2: 0.90, y3: 1.00 },
 }
 
-/** Net Realization Factor — SC row 309 */
+/** Net Realization Factor — SC row 309
+ *  Isolated Downside widened to 0.83 — denial rate ~17% reflecting true payer
+ *  pressure scenario. Prior 0.88 was too soft; Base/Down gap imperceptible. */
 export const NET_REALIZATION_FACTOR: ScenarioValues = {
-  conservative: 0.88,
+  conservative: 0.83,
   base:         0.92,
   aggressive:   0.95,
 }
 
 /** Targeted Acquisition Mix — SC row 319 (commercial share)
- *  ISOLATED DOWNSIDE: Conservative slightly softer (68% not 65%) — mild drift toward Medicare. */
+ *  Per Part 1 spec: Down 65 / Base 75 / Up 85. Structural scenarios reflect
+ *  MA penetration drift, standard market mix, and targeted commercial acquisition. */
 export const TARGETED_COMMERCIAL_SHARE: ScenarioValues = {
-  conservative: 0.68,
+  conservative: 0.65,
   base:         0.75,
   aggressive:   0.85,
 }
