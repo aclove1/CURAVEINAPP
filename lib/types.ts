@@ -100,8 +100,13 @@ export interface Assumptions {
   complexityDistribution: ScenarioValues<ComplexityDistribution>  // replaces flat expectedPathwayProcs
   capacityModel: ScenarioValues<CapacityModel>                    // replaces flat maxCapacityPerMonth
   utilizationRamp: ScenarioValues<UtilizationRamp>                // Y1/Y2/Y3 capacity utilization
-  netRealizationFactor: ScenarioValues                            // Down 88% / Base 92% / Up 95%
+  netRealizationFactor: ScenarioValues                            // Down 83% / Base 94% / Up 96%
   targetedCommercialShare: ScenarioValues                         // Down 65% / Base 75% / Up 85%
+  // v12 hardening Path B: US billing per treated patient (93970 + 93971 cadence).
+  // Historically excluded from blended procedure rate per Phase C. Re-added as
+  // separate revenue line. Per-patient assumption reflects pathway cadence
+  // (diagnostic + pre-proc × 2 legs + 2-4 follow-up scans) × blended US rate.
+  usRevenuePerPatient: ScenarioValues                             // Down $925 / Base $1,295 / Up $1,480
   medicareRate: ScenarioValues
   commercialMultiplier: ScenarioValues
   bcbsMultiplier: number

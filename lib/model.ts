@@ -239,7 +239,17 @@ export function calcRevenueMonth(month: number, a: Assumptions): RevenueMonth {
   const medicareRate = sv(a.medicareRate, a.scenario)
   const commMultiplier = blendedCommercialMultiplier(a)
   const commercialRate = Math.round(medicareRate * commMultiplier)
-  const grossRevenue = procs * blendedRate
+  const procRevenue = procs * blendedRate
+  // v12 hardening Path B: US billing as separate revenue line per treated patient.
+  // Was excluded from FEE_SCHEDULE per Phase C. usRevenuePerPatient covers the
+  // pathway scan cadence (1 diagnostic + 2 pre-proc + 4 follow-up).
+  // Billed patients = procs / effective-procs-per-patient (capacity-capped).
+  const procsPerPt = effectiveProcsPerPatient(a)
+  const billedPatients = procsPerPt > 0 ? procs / procsPerPt : 0
+  const usRevenue = V12_HARDENING_ENABLED
+    ? Math.round(billedPatients * sv(a.usRevenuePerPatient, a.scenario))
+    : 0
+  const grossRevenue = procRevenue + usRevenue
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
   const netRevenue = grossRevenue + managementFee
   const medicareRevenue = Math.round(procs * govMix * medicareRate)

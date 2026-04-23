@@ -111,11 +111,13 @@ export function calcWeightedProcsFromDistribution(d: ComplexityDistribution): nu
 }
 
 /** Structured Capacity Model — SC rows 276-280
- *  ISOLATED DOWNSIDE: Conservative = Base (capacity is not the downside lever). */
+ *  Path B: Base procs/day 7 → 8 (two-room parallel scheduling as operating baseline).
+ *  ISOLATED DOWNSIDE: Conservative = Base (capacity is not the downside lever).
+ *  Aggressive bumped 8 → 9 to maintain Upside spread. */
 export const CAPACITY_MODEL: ScenarioValues<CapacityModel> = {
-  conservative: { procDaysPerMonth: 18, procsPerDay: 7, noShowRate: 0.10, cancellationRate: 0.05 },
-  base:         { procDaysPerMonth: 18, procsPerDay: 7, noShowRate: 0.10, cancellationRate: 0.05 },
-  aggressive:   { procDaysPerMonth: 20, procsPerDay: 8, noShowRate: 0.05, cancellationRate: 0.03 },
+  conservative: { procDaysPerMonth: 18, procsPerDay: 8, noShowRate: 0.10, cancellationRate: 0.05 },
+  base:         { procDaysPerMonth: 18, procsPerDay: 8, noShowRate: 0.10, cancellationRate: 0.05 },
+  aggressive:   { procDaysPerMonth: 20, procsPerDay: 9, noShowRate: 0.05, cancellationRate: 0.03 },
 }
 
 export function calcNetCapacity(c: CapacityModel): number {
@@ -131,12 +133,13 @@ export const UTILIZATION_RAMP: ScenarioValues<UtilizationRamp> = {
 }
 
 /** Net Realization Factor — SC row 309
- *  Isolated Downside widened to 0.83 — denial rate ~17% reflecting true payer
- *  pressure scenario. Prior 0.88 was too soft; Base/Down gap imperceptible. */
+ *  Path B: Base 92% → 94% — mature RCM with denial-management workflow by Y3.
+ *  Isolated Downside: Conservative 0.83 reflects denial-pressure scenario.
+ *  Aggressive bumped to 0.96 (top-quartile RCM). */
 export const NET_REALIZATION_FACTOR: ScenarioValues = {
   conservative: 0.83,
-  base:         0.92,
-  aggressive:   0.95,
+  base:         0.94,
+  aggressive:   0.96,
 }
 
 /** Targeted Acquisition Mix — SC row 319 (commercial share)
@@ -146,6 +149,19 @@ export const TARGETED_COMMERCIAL_SHARE: ScenarioValues = {
   conservative: 0.65,
   base:         0.75,
   aggressive:   0.85,
+}
+
+/** US Billing per treated patient (v12 hardening Path B).
+ *  Was excluded from FEE_SCHEDULE per Phase C; re-added as separate line.
+ *  Per-patient assumption reflects pathway cadence:
+ *    Base (7 scans/patient): 1 initial bilateral 93970 + 2 pre-proc 93971 + 4 follow-up 93971
+ *                            = ~$1,295 at blended rates (93970 ~$280, 93971 ~$140)
+ *    Down (5 scans): less follow-up, patients drop off ~$925
+ *    Up (8 scans): full surveillance + post-op doppler ~$1,480 */
+export const US_REVENUE_PER_PATIENT: ScenarioValues = {
+  conservative: 925,
+  base:         1295,
+  aggressive:   1480,
 }
 
 /** Derived: weighted procs/patient per scenario (replaces flat 4.0 when flag on) */
@@ -200,6 +216,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   utilizationRamp: UTILIZATION_RAMP,
   netRealizationFactor: NET_REALIZATION_FACTOR,
   targetedCommercialShare: TARGETED_COMMERCIAL_SHARE,
+  usRevenuePerPatient: US_REVENUE_PER_PATIENT,
   maxCapacityPerMonth: 146,
   medicareRate: { conservative: 1408, base: 1408, aggressive: 1408 }, // SC!E130 — CPT weighted base (was 1147)
   // Commercial multiplier v11: BCBS 30%×1.30 + Aetna/UHC/Cigna 70%×1.58 = 1.496 (SC!D156→F15)
