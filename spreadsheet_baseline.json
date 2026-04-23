@@ -64,8 +64,38 @@
   "expected_pathway_procs": {
     "sheet": "SC",
     "cell": "D224",
-    "value": 4.0,
-    "note": "v12 NEW: clinical norm for full bilateral CVI plan (RFA/VenaSeal × 2 + sclero per leg)"
+    "value": 3.62,
+    "note": "v12 hardening: derived from COMPLEXITY_DISTRIBUTION weighted mean (Base). Was flat 4.0. SC!D263 weighted mean."
+  },
+  "weighted_procs_per_patient_base": {
+    "sheet": "SC",
+    "cell": "D263",
+    "value": 3.62,
+    "note": "v12 hardening NEW: Σ (pctBucket × meanProcs). Base: 25%×1.5 + 50%×3.5 + 25%×6.0 = 3.625"
+  },
+  "net_capacity_base": {
+    "sheet": "SC",
+    "cell": "D281",
+    "value": 108,
+    "note": "v12 hardening NEW: 18 days × 7 procs × 0.9 no-show × 0.95 cancel = 108/mo. Was flat 146."
+  },
+  "utilization_ramp_base": {
+    "sheet": "SC",
+    "cell": "C295:E295",
+    "value": { "y1": 0.70, "y2": 0.85, "y3": 0.95 },
+    "note": "v12 hardening NEW: fraction of net capacity utilized by year. Base scenario."
+  },
+  "net_realization_factor_base": {
+    "sheet": "SC",
+    "cell": "D309",
+    "value": 0.92,
+    "note": "v12 hardening NEW: collections net of denials/write-offs. Industry 88-95%. Base 92%."
+  },
+  "targeted_commercial_share_base": {
+    "sheet": "SC",
+    "cell": "D319",
+    "value": 0.75,
+    "note": "v12 hardening NEW: operator-controlled payer mix via channel strategy. Down 65 / Base 75 / Up 85."
   },
   "pathway_completion": {
     "sheet": "SC",

@@ -53,6 +53,35 @@ export interface LeadSource {
   note: string
 }
 
+// ─── v12 HARDENING — Phase 2 structural types ────────────────────────────
+// Source: CuraVein_Integrated_v12.xlsx → Scenario Controls rows 250-321
+// Gated by V12_HARDENING_ENABLED flag in defaults.ts (preview only).
+
+/** Procedure Complexity Distribution (SC rows 250-263) */
+export interface ComplexityDistribution {
+  pctLow: number      // share of patients at 1-2 procs
+  pctMid: number      // share at 3-4 procs
+  pctHigh: number     // share at 5-7 procs
+  meanLowProcs: number   // default 1.5
+  meanMidProcs: number   // default 3.5
+  meanHighProcs: number  // default 6.0
+}
+
+/** Structured Capacity Model (SC rows 272-283) */
+export interface CapacityModel {
+  procDaysPerMonth: number   // Down 16 / Base 18 / Up 20
+  procsPerDay: number        // Down 6 / Base 7 / Up 8
+  noShowRate: number         // Down 15% / Base 10% / Up 5%
+  cancellationRate: number   // Down 8% / Base 5% / Up 3%
+}
+
+/** Utilization Ramp (SC rows 292-299): fraction of net capacity used by year */
+export interface UtilizationRamp {
+  y1: number
+  y2: number
+  y3: number
+}
+
 export interface Assumptions {
   scenario: Scenario
   market: Market
@@ -66,7 +95,18 @@ export interface Assumptions {
   // procsPerPatient is now derived so that v11 callers keep working unchanged.
   expectedPathwayProcs: ScenarioValues  // clinical norm for full bilateral CVI plan (~4.0)
   pathwayCompletion: ScenarioValues     // % of treated patients who complete the full plan
-  maxCapacityPerMonth: number
+  maxCapacityPerMonth: number           // PEAK physician ceiling (146). Not steady-state — see capacityModel.
+  // v12 HARDENING (Phase 2): structural replacements gated by V12_HARDENING_ENABLED.
+  complexityDistribution: ScenarioValues<ComplexityDistribution>  // replaces flat expectedPathwayProcs
+  capacityModel: ScenarioValues<CapacityModel>                    // replaces flat maxCapacityPerMonth
+  utilizationRamp: ScenarioValues<UtilizationRamp>                // Y1/Y2/Y3 capacity utilization
+  netRealizationFactor: ScenarioValues                            // Down 83% / Base 94% / Up 96%
+  targetedCommercialShare: ScenarioValues                         // Down 65% / Base 75% / Up 85%
+  // v12 hardening Path B: US billing per treated patient (93970 + 93971 cadence).
+  // Historically excluded from blended procedure rate per Phase C. Re-added as
+  // separate revenue line. Per-patient assumption reflects pathway cadence
+  // (diagnostic + pre-proc × 2 legs + 2-4 follow-up scans) × blended US rate.
+  usRevenuePerPatient: ScenarioValues                             // Down $925 / Base $1,295 / Up $1,480
   medicareRate: ScenarioValues
   commercialMultiplier: ScenarioValues
   bcbsMultiplier: number

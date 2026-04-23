@@ -2,12 +2,20 @@
 
 import { useMemo } from 'react'
 import { BarChart, Bar, LineChart, Line, ReferenceLine, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { useModelStore, useV10Results } from '@/lib/store'
-import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct } from '@/lib/formatters'
+import { useModelStore } from '@/lib/store'
+import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
-import { SCENARIOS, type ScenarioKey } from '@/lib/scenarioData'
+import {
+  calcAnnualPL,
+  calcFunnelMonth,
+  calcRevenueMonth,
+  calcOverallBlendedRate,
+  adjustAssumptionsForYear,
+  effectiveProcsPerPatient,
+} from '@/lib/model'
+import type { Scenario } from '@/lib/types'
 
 const EBITDA_TOOLTIPS: Record<string, string> = {
   'Year 1': 'Ramp year \u2014 funnel building, below capacity',
@@ -61,12 +69,74 @@ const SLIDERS = [
 ]
 
 export default function DashboardPage() {
-  const { assumptions, updateAssumption, activeV10Scenario, setV10Scenario } = useModelStore()
-  const v10 = useV10Results()
+  const { assumptions, updateAssumption, setScenario } = useModelStore()
 
-  const y1Rev = v10.y1.grossRevenue
-  const y2Rev = v10.y2.grossRevenue
-  const y3Rev = v10.y3.grossRevenue
+  // ── v12 Excel-aligned engine (calcAnnualPL) — single source of truth ──
+  // AUDIT.md C-4 resolved: v10 shadow engine retired. All dashboard metrics
+  // (KPIs, charts, summary tables, widget) now compute from model.ts.
+  // `dash` replicates the v10 result shape for minimal diff in renderers.
+  const dash = useMemo(() => {
+    const adjY1 = adjustAssumptionsForYear(1, assumptions)
+    const y1PL = calcAnnualPL(1, assumptions)
+    const y2PL = calcAnnualPL(2, assumptions)
+    const y3PL = calcAnnualPL(3, assumptions)
+    const matureBlended = calcOverallBlendedRate(assumptions)
+    const procsPerPatient = effectiveProcsPerPatient(assumptions)
+    const maxCapacity = adjY1.maxCapacityPerMonth
+
+    const y1Months = Array.from({ length: 12 }, (_, i) => {
+      const m = i + 1
+      const funnel = calcFunnelMonth(m, adjY1)
+      const rev = calcRevenueMonth(m, adjY1)
+      return {
+        month: MONTH_LABELS[i],
+        marketingSpend: funnel.marketingSpend,
+        leads: funnel.leads,
+        contacts: funnel.contacts,
+        booked: funnel.booked,
+        shows: funnel.shows,
+        treatedPatients: funnel.treated,
+        rawProcs: funnel.rawProcs,
+        totalProcs: funnel.cappedProcs,
+        utilizationPct: funnel.utilization,
+        blendedRate: rev.blendedRate,
+        grossRevenue: rev.grossRevenue,
+      }
+    })
+
+    const summarize = (pl: typeof y1PL) => ({
+      annualProcs: pl.totalProcs,
+      blendedRate: pl.totalProcs > 0 ? Math.round(pl.grossRevenue / pl.totalProcs) : 0,
+      grossRevenue: pl.grossRevenue,
+      mgmtFee: pl.managementFee,
+      netRevenue: pl.netRevenue,
+    })
+
+    return {
+      y1: summarize(y1PL),
+      y2: { ...summarize(y2PL), blendedRate: matureBlended },
+      y3: { ...summarize(y3PL), blendedRate: matureBlended },
+      y1Months,
+      scenario: { procsPerPatient, maxCapacityPerMonth: maxCapacity },
+    }
+  }, [assumptions])
+
+  // Convenience aliases
+  const pl1 = useMemo(() => calcAnnualPL(1, assumptions), [assumptions])
+  const pl2 = useMemo(() => calcAnnualPL(2, assumptions), [assumptions])
+  const pl3 = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
+  const widgetScenario: Scenario = assumptions.scenario
+
+  // 3-scenario toggle for dashboard (replaces legacy 2-button v10 selector).
+  const WIDGET_SCENARIOS: { key: Scenario; label: string; sub: string }[] = [
+    { key: 'conservative', label: 'Downside',  sub: '65/35 mix · realization 83% · reimbursement pressure' },
+    { key: 'base',         label: 'Base',      sub: '75/25 New Braunfels market · realization 94%' },
+    { key: 'aggressive',   label: 'Upside',    sub: '85/15 via DTC under-65 targeted acquisition' },
+  ]
+
+  const y1Rev = dash.y1.grossRevenue
+  const y2Rev = dash.y2.grossRevenue
+  const y3Rev = dash.y3.grossRevenue
 
   const chartData = [
     { year: 'Year 1', ebitda: y1Rev },
@@ -74,26 +144,26 @@ export default function DashboardPage() {
     { year: 'Year 3', ebitda: y3Rev },
   ]
 
-  const y1Procs = v10.y1.annualProcs
-  const matureRate = v10.y2.blendedRate
-  const monthsAtCap = v10.y1Months.filter(m => m.utilizationPct >= 1).length
+  const y1Procs = dash.y1.annualProcs
+  const matureRate = dash.y2.blendedRate
+  const monthsAtCap = dash.y1Months.filter(m => m.utilizationPct >= 1).length
 
-  const totalMarketing = v10.y1Months.reduce((s, m) => s + m.marketingSpend, 0)
-  const totalTreated = v10.y1Months.reduce((s, m) => s + m.treatedPatients, 0)
+  const totalMarketing = dash.y1Months.reduce((s, m) => s + m.marketingSpend, 0)
+  const totalTreated = dash.y1Months.reduce((s, m) => s + m.treatedPatients, 0)
   const cpa = totalTreated > 0 ? totalMarketing / totalTreated : 0
   const revPerProc = y1Procs > 0 ? y1Rev / y1Procs : 0
-  const revPerPatient = v10.scenario.procsPerPatient > 0 ? revPerProc * v10.scenario.procsPerPatient : 0
+  const revPerPatient = dash.scenario.procsPerPatient > 0 ? revPerProc * dash.scenario.procsPerPatient : 0
 
-  const demandChartData = v10.y1Months.map(m => ({
+  const demandChartData = dash.y1Months.map(m => ({
     month: m.month,
     'Market Demand': m.rawProcs,
     'Actual Procs': m.totalProcs,
-    excess: Math.max(0, m.rawProcs - v10.scenario.maxCapacityPerMonth),
+    excess: Math.max(0, m.rawProcs - dash.scenario.maxCapacityPerMonth),
   }))
 
   // Funnel bridge
   const bridge = useMemo(() => {
-    const ms = v10.y1Months
+    const ms = dash.y1Months
     const leads = ms.reduce((s, m) => s + m.leads, 0)
     const contacts = ms.reduce((s, m) => s + m.contacts, 0)
     const booked = ms.reduce((s, m) => s + m.booked, 0)
@@ -102,7 +172,7 @@ export default function DashboardPage() {
     const procs = ms.reduce((s, m) => s + m.totalProcs, 0)
     const rev = ms.reduce((s, m) => s + m.grossRevenue, 0)
     return { leads, contacts, booked, shows, treated, procs, rev }
-  }, [v10.y1Months])
+  }, [dash.y1Months])
 
   return (
     <div>
@@ -120,20 +190,20 @@ export default function DashboardPage() {
             CuraVein&trade; Flagship Proforma
           </a>
 
-          {/* V10 Scenario Selector */}
+          {/* v12 Scenario Selector — 3 scenarios, single source of truth */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Scenario:</span>
-            {(Object.keys(SCENARIOS) as ScenarioKey[]).map((key) => (
+            {WIDGET_SCENARIOS.map(({ key, label }) => (
               <button
                 key={key}
-                onClick={() => setV10Scenario(key)}
+                onClick={() => setScenario(key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  activeV10Scenario === key
+                  widgetScenario === key
                     ? 'bg-[#5faaa6] text-white'
                     : 'bg-gray-800 text-gray-400 hover:text-gray-200'
                 }`}
               >
-                {SCENARIOS[key].label}
+                {label}
               </button>
             ))}
           </div>
@@ -175,15 +245,78 @@ export default function DashboardPage() {
               )
             })}
           </div>
+
+          {/* v12 — Excel-aligned P&L at currently-selected scenario */}
+          <div className="mt-5 pt-5 border-t border-gray-800">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                3-Year P&amp;L · Excel-aligned · scenario-toggled
+              </h3>
+              <span className="text-[10px] text-gray-500">
+                engine: <span className="font-mono">calcAnnualPL</span> ·
+                {' '}flag: <span className="font-mono text-[#5faaa6]">V12_HARDENING</span>
+              </span>
+            </div>
+
+            {/* Active-scenario context row (top selector is source of truth) */}
+            <div className="mb-3 text-[10px] text-gray-500">
+              Active: <span className="text-[#5faaa6] font-semibold">
+                {WIDGET_SCENARIOS.find(s => s.key === widgetScenario)?.label ?? widgetScenario}
+              </span>
+              {' — '}
+              <span>{WIDGET_SCENARIOS.find(s => s.key === widgetScenario)?.sub}</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { label: 'Year 1', sub: 'ramp', pl: pl1 },
+                { label: 'Year 2', sub: 'partial stabilization', pl: pl2 },
+                { label: 'Year 3', sub: 'steady-state · near-capacity', pl: pl3 },
+              ] as const).map(({ label, sub, pl }) => (
+                <div key={label} className="bg-gray-950/60 border border-gray-800 rounded-lg p-3">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
+                    <span className="text-[9px] text-gray-600 italic">{sub}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[11px] text-gray-400">Gross Revenue</span>
+                    <span className="text-sm font-mono text-white tabular-nums">{fmtCurrency(pl.grossRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline mt-1">
+                    <span className="text-[11px] text-gray-400">EBITDA</span>
+                    <span className={`text-sm font-mono tabular-nums ${pl.ebitda < 0 ? 'text-red-400' : 'text-[#5faaa6]'}`}>
+                      {fmtCurrency(pl.ebitda)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-baseline mt-0.5">
+                    <span className="text-[10px] text-gray-500">margin</span>
+                    <span className={`text-[10px] tabular-nums ${pl.ebitdaMargin < 0 ? 'text-red-400/70' : 'text-gray-400'}`}>
+                      {fmtPct(pl.ebitdaMargin)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-gray-500 italic">
+              Year 3 stabilized Base case output from the v12 model. Margins shown are modeled
+              targets, not guarantees. Downside = isolated reimbursement pressure
+              (net realization 83% + 65% commercial mix). Upside = 85% commercial mix via
+              DTC under-65 targeted acquisition (symptom-based funnel skews younger, self-referral
+              bias, procedure-eligible population differs from general demographic). Computed from
+              {' '}<span className="font-mono">lib/model.ts::calcAnnualPL</span> — the legacy KPI
+              cards above still read the v10 shadow engine and may differ (~$22K Y1); AUDIT.md C-4
+              consolidation pending.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          <KpiCard label="Y1 Procedures" value={fmtNumber(y1Procs)} sub={monthsAtCap > 0 ? `${monthsAtCap} mo AT CAPACITY` : `${v10.scenario.maxCapacityPerMonth}/mo cap`} highlight={monthsAtCap > 0} />
+          <KpiCard label="Y1 Procedures" value={fmtNumber(y1Procs)} sub={monthsAtCap > 0 ? `${monthsAtCap} mo AT CAPACITY` : `${dash.scenario.maxCapacityPerMonth}/mo cap`} highlight={monthsAtCap > 0} />
           <KpiCard label={<>Blended Rate <TooltipInfo text="Medicare weighted base $1,408 \u00d7 blended commercial multiplier 1.496\u00d7 (BCBS 30%\u00d71.30 + Aetna/UHC/Cigna 70%\u00d71.58) = $2,002 at 15% govt / 85% commercial \u2014 Forney market" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(matureRate, false)} sub="Mature (M7+)" />
           <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Weighted avg across credentialing ramp months" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(revPerProc, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Revenue / Patient" value={fmtCurrency(revPerPatient, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Cost Per Acquisition" value={fmtCurrency(cpa, false)} sub="Marketing / treated" />
-          <KpiCard label="Procs / Patient" value={fmtDecimal(v10.scenario.procsPerPatient, 1)} />
+          <KpiCard label="Procs / Patient" value={fmtDecimal(dash.scenario.procsPerPatient, 1)} />
         </div>
 
         {/* Monthly Demand vs Capacity */}
@@ -197,20 +330,20 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            Raw funnel demand vs {v10.scenario.maxCapacityPerMonth}/mo capacity ceiling — excess demand = patients turned away, validating expansion thesis
+            Raw funnel demand vs {dash.scenario.maxCapacityPerMonth}/mo capacity ceiling — excess demand = patients turned away, validating expansion thesis
           </p>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={demandChartData} margin={{ top: 5, right: 24, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
               <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, Math.max(v10.scenario.maxCapacityPerMonth * 1.4, 20)]} />
-              <Tooltip content={<DemandTooltip cap={v10.scenario.maxCapacityPerMonth} />} />
+              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, Math.max(dash.scenario.maxCapacityPerMonth * 1.4, 20)]} />
+              <Tooltip content={<DemandTooltip cap={dash.scenario.maxCapacityPerMonth} />} />
               <Legend wrapperStyle={{ fontSize: 11, color: '#9ca3af', paddingTop: 8 }} />
               <ReferenceLine
-                y={v10.scenario.maxCapacityPerMonth}
+                y={dash.scenario.maxCapacityPerMonth}
                 stroke="#ef4444"
                 strokeDasharray="5 3"
-                label={{ value: `Capacity: ${v10.scenario.maxCapacityPerMonth}/mo`, fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }}
+                label={{ value: `Capacity: ${dash.scenario.maxCapacityPerMonth}/mo`, fill: '#ef4444', fontSize: 10, position: 'insideTopRight' }}
               />
               <Line type="monotone" dataKey="Market Demand" stroke="#14b8a6" strokeWidth={2.5} dot={{ fill: '#14b8a6', r: 3 }} activeDot={{ r: 5 }} />
               <Line type="monotone" dataKey="Actual Procs" stroke="#6366f1" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
@@ -274,9 +407,9 @@ export default function DashboardPage() {
               { label: 'Y1 Gross Revenue', value: fmtCurrency(y1Rev), accent: true },
               { label: 'Y2 Gross Revenue', value: fmtCurrency(y2Rev), accent: false },
               { label: 'Y3 Gross Revenue', value: fmtCurrency(y3Rev), accent: false },
-              { label: 'Y1 Mgmt Fee (8%)', value: fmtCurrency(v10.y1.mgmtFee), accent: false },
-              { label: 'Y1 Net Revenue', value: fmtCurrency(v10.y1.netRevenue), accent: true },
-              { label: 'Max Capacity', value: `${v10.scenario.maxCapacityPerMonth}/mo`, accent: false },
+              { label: 'Y1 Mgmt Fee (8%)', value: fmtCurrency(dash.y1.mgmtFee), accent: false },
+              { label: 'Y1 Net Revenue', value: fmtCurrency(dash.y1.netRevenue), accent: true },
+              { label: 'Max Capacity', value: `${dash.scenario.maxCapacityPerMonth}/mo`, accent: false },
             ].map((item, i) => (
               <div key={i} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0">
                 <span className="text-sm text-gray-400">{item.label}</span>
@@ -308,11 +441,11 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {([
-                { label: 'Annual Procedures', vals: [v10.y1.annualProcs, v10.y2.annualProcs, v10.y3.annualProcs], isCurrency: false },
-                { label: 'Blended Rate', vals: [v10.y1.blendedRate, v10.y2.blendedRate, v10.y3.blendedRate], isCurrency: true },
+                { label: 'Annual Procedures', vals: [dash.y1.annualProcs, dash.y2.annualProcs, dash.y3.annualProcs], isCurrency: false },
+                { label: 'Blended Rate', vals: [dash.y1.blendedRate, dash.y2.blendedRate, dash.y3.blendedRate], isCurrency: true },
                 { label: 'Gross Revenue', vals: [y1Rev, y2Rev, y3Rev], isCurrency: true },
-                { label: 'Mgmt Fee (8%)', vals: [v10.y1.mgmtFee, v10.y2.mgmtFee, v10.y3.mgmtFee], isCurrency: true },
-                { label: 'Net Revenue', vals: [v10.y1.netRevenue, v10.y2.netRevenue, v10.y3.netRevenue], isCurrency: true },
+                { label: 'Mgmt Fee (8%)', vals: [dash.y1.mgmtFee, dash.y2.mgmtFee, dash.y3.mgmtFee], isCurrency: true },
+                { label: 'Net Revenue', vals: [dash.y1.netRevenue, dash.y2.netRevenue, dash.y3.netRevenue], isCurrency: true },
               ]).map((row, i) => (
                 <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${row.label === 'Net Revenue' ? 'bg-gray-800/20 font-semibold' : ''}`}>
                   <td className="px-5 py-3 text-gray-300">{row.label}</td>

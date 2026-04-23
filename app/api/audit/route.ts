@@ -1,30 +1,61 @@
 import { NextResponse } from 'next/server'
-import { REIMBURSEMENT, SCENARIOS, DEFAULT_SCENARIO } from '@/lib/scenarioData'
 import { DEFAULT_ASSUMPTIONS, CPT_CODES } from '@/lib/defaults'
 import {
   calcWeightedMedicareBase,
   calcOverallBlendedRate,
   calcVarithenaCostPerProc,
   calcWeightedSupplyCost,
+  calcAnnualPL,
+  calcFunnelMonth,
+  calcRevenueMonth,
+  adjustAssumptionsForYear,
 } from '@/lib/model'
-import { runFunnelYear1, calcMultiYearRevenue } from '@/lib/v10Calculations'
+import { MONTH_LABELS } from '@/lib/formatters'
 import { payerMixByMarket } from '@/lib/payerMix'
 
+// AUDIT.md C-4 resolved: v10 shadow engine retired. Audit endpoint now
+// reports directly from calcAnnualPL — matches what the dashboard + all
+// other pages show.
 export async function GET() {
-  const scenario = SCENARIOS[DEFAULT_SCENARIO]
-  const a        = DEFAULT_ASSUMPTIONS
-  const y1Months = runFunnelYear1(scenario)
-  const multiYear = calcMultiYearRevenue(scenario, y1Months)
+  const a = DEFAULT_ASSUMPTIONS
+  const adjY1 = adjustAssumptionsForYear(1, a)
+  const y1PL = calcAnnualPL(1, a)
+  const y2PL = calcAnnualPL(2, a)
+  const y3PL = calcAnnualPL(3, a)
+
+  const y1Months = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1
+    const f = calcFunnelMonth(m, adjY1)
+    const r = calcRevenueMonth(m, adjY1)
+    return {
+      month: MONTH_LABELS[i],
+      blendedRate: r.blendedRate,
+      totalProcs: f.cappedProcs,
+      grossRevenue: r.grossRevenue,
+      medicareRevenue: r.medicareRevenue,
+      commercialRevenue: r.commercialRevenue,
+    }
+  })
+
+  const summarize = (pl: typeof y1PL) => ({
+    annualProcs:  pl.totalProcs,
+    grossRevenue: pl.grossRevenue,
+    mgmtFee:      pl.managementFee,
+    netRevenue:   pl.netRevenue,
+    totalCOGS:    pl.totalCOGS,
+    ebitda:       pl.ebitda,
+    ebitdaMargin: pl.ebitdaMargin,
+  })
 
   return NextResponse.json({
     _meta: {
       generated:       new Date().toISOString(),
-      activeScenario:  DEFAULT_SCENARIO,
+      activeScenario:  a.scenario,
+      engine:          'lib/model.ts::calcAnnualPL (v10 shadow retired per AUDIT C-4)',
       note:            'Read-only audit export — no model files modified.',
     },
 
     reimbursement: {
-      ...REIMBURSEMENT,
       derivedMedicareBase:  calcWeightedMedicareBase(),
       derivedBlendedRate:   calcOverallBlendedRate(a),
     },
@@ -78,9 +109,9 @@ export async function GET() {
     cptTable: CPT_CODES,
 
     multiYear: {
-      y1: multiYear.y1,
-      y2: multiYear.y2,
-      y3: multiYear.y3,
+      y1: summarize(y1PL),
+      y2: summarize(y2PL),
+      y3: summarize(y3PL),
     },
 
     monthlyY1: y1Months.map(m => ({
