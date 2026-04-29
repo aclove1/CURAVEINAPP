@@ -58,9 +58,9 @@ function NumberInput({
   )
 }
 
-type ScenKey = 'conservative' | 'base' | 'aggressive'
-const SCEN_KEYS: ScenKey[] = ['conservative', 'base', 'aggressive']
-const SCEN_LABELS = { conservative: 'Conservative', base: 'Base', aggressive: 'Aggressive' }
+type ScenKey = 'conservative' | 'base' | 'aggressive' | 'hybridWound'
+const SCEN_KEYS: ScenKey[] = ['conservative', 'base', 'aggressive', 'hybridWound']
+const SCEN_LABELS = { conservative: 'Conservative', base: 'Base', aggressive: 'Aggressive', hybridWound: 'Hybrid' }
 
 function ScenarioRow({
   label,
@@ -76,7 +76,7 @@ function ScenarioRow({
   tooltip?: { text: string; href: string }
 }) {
   const { assumptions, updateAssumption } = useModelStore()
-  const val = assumptions[field] as { conservative: number; base: number; aggressive: number }
+  const val = assumptions[field] as { conservative: number; base: number; aggressive: number; hybridWound: number }
 
   return (
     <tr className="border-b border-gray-800 hover:bg-gray-800/20">

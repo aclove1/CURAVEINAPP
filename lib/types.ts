@@ -1,10 +1,11 @@
-export type Scenario = 'conservative' | 'base' | 'aggressive'
+export type Scenario = 'conservative' | 'base' | 'aggressive' | 'hybridWound'
 export type Market = 'newBraunfels' | 'forney'
 
 export interface ScenarioValues<T = number> {
   conservative: T
   base: T
   aggressive: T
+  hybridWound: T
 }
 
 export type PayerWeights = {
@@ -107,6 +108,17 @@ export interface Assumptions {
   // separate revenue line. Per-patient assumption reflects pathway cadence
   // (diagnostic + pre-proc × 2 legs + 2-4 follow-up scans) × blended US rate.
   usRevenuePerPatient: ScenarioValues                             // Down $925 / Base $1,295 / Up $1,480
+  // Hybrid Wound Care Center Referral Base scenario: month-1 utilized procedure
+  // capacity from embedded wound-care referrals. Range 0.10-1.00, default 0.75.
+  // Only consumed when scenario === 'hybridWound'; ignored by other scenarios.
+  startingProcedureCapacity: number
+  // Internal: per-month procedure FLOOR array (12 entries) populated by
+  // adjustAssumptionsForYear when scenario === 'hybridWound' && year === 1.
+  // Hybrid scenario semantics: wound-care referrals ensure these monthly
+  // procedure volumes are filled regardless of DTC funnel demand. Final
+  // cappedProcs = min(max(rawProcs, floor), maxCapacityPerMonth).
+  // Other scenarios: undefined (no behavior change).
+  _monthlyProcFloor?: number[]
   medicareRate: ScenarioValues
   commercialMultiplier: ScenarioValues
   bcbsMultiplier: number
