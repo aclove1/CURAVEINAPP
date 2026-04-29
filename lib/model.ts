@@ -58,6 +58,15 @@ export function roundCurrency(value: number): number {
 export const RAMP_START = 0.40
 export const RAMP_MONTHS = 5
 
+/* ── Hybrid Wound Care Center Referral Base — Y1 monthly utilization ramp ───
+   When scenario === 'hybridWound', Y1 utilization is NOT a flat per-year value.
+   Month 1 starts at startingProcedureCapacity (slider, default 0.75).
+   Subsequent months ramp linearly to 1.0 over Y1_RAMP_MONTHS months.
+   Step formula: (1.0 - startingProcedureCapacity) / (Y1_RAMP_MONTHS - 1).
+   Applied only to Hybrid Y1; Y2/Y3 use existing UTILIZATION_RAMP entries.
+   Other scenarios: zero behavior change.                                     */
+export const Y1_RAMP_MONTHS = 12
+
 function getCredentialingMix(month: number, a: Assumptions, year: 1 | 2 | 3 = 1): { govMix: number; commMix: number } {
   const steady = effectiveCommercialShare(a)
   if (year >= 2) return { govMix: 1 - steady, commMix: steady }
@@ -190,9 +199,15 @@ export function calcFunnelMonth(month: number, a: Assumptions): FunnelMonth {
   const rawProcs = Math.round(treated * effectiveProcsPerPatient(a))
   // v12 HARDENING: a.maxCapacityPerMonth is pre-set by adjustAssumptionsForYear
   // to (net capacity × utilization ramp) for the active year when flag is on.
-  const cappedProcs = Math.min(rawProcs, a.maxCapacityPerMonth)
-  const utilization = a.maxCapacityPerMonth > 0 ? cappedProcs / a.maxCapacityPerMonth : 0
-  const excessDemand = Math.max(0, rawProcs - a.maxCapacityPerMonth)
+  // Hybrid Wound Y1: a._monthlyProcFloor[month-1] supplies a per-month
+  // referral-driven procedure floor. Final = min(max(raw, floor), cap).
+  // Other scenarios: _monthlyProcFloor is undefined, falls through to existing
+  // min(raw, cap) behavior — zero impact.
+  const cap = a.maxCapacityPerMonth
+  const floor = a._monthlyProcFloor?.[month - 1] ?? 0
+  const cappedProcs = Math.min(Math.max(rawProcs, floor), cap)
+  const utilization = cap > 0 ? cappedProcs / cap : 0
+  const excessDemand = Math.max(0, rawProcs - cap)
   return { month, leads, contacts, booked, shows, treated, rawProcs, cappedProcs, utilization, excessDemand, marketingSpend: spend }
 }
 
@@ -379,14 +394,15 @@ const Y2_IMPROVEMENT = 0.10
 const Y3_IMPROVEMENT = 0.15
 
 function boostScenarioValues(
-  base: { conservative: number; base: number; aggressive: number },
+  base: { conservative: number; base: number; aggressive: number; hybridWound: number },
   factor: number,
   cap: number,
-): { conservative: number; base: number; aggressive: number } {
+): { conservative: number; base: number; aggressive: number; hybridWound: number } {
   return {
     conservative: Math.min(base.conservative * (1 + factor), cap),
     base: Math.min(base.base * (1 + factor), cap),
     aggressive: Math.min(base.aggressive * (1 + factor), cap),
+    hybridWound: Math.min(base.hybridWound * (1 + factor), cap),
   }
 }
 
@@ -400,6 +416,7 @@ function scaleMarketingSpend(base: Assumptions['marketingSpend'], factor: number
     conservative: scale(base.conservative),
     base:         scale(base.base),
     aggressive:   scale(base.aggressive),
+    hybridWound:  scale(base.hybridWound),
   }
 }
 
@@ -407,9 +424,27 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
   // v12 HARDENING: bake year-specific effective capacity into maxCapacityPerMonth.
   // Previously a.maxCapacityPerMonth was a flat 146 across all years; now it's
   // (net capacity × utilization ramp for `year`). Applied in every year including Y1.
-  const withCapacity: Assumptions = V12_HARDENING_ENABLED
+  let withCapacity: Assumptions = V12_HARDENING_ENABLED
     ? { ...a, maxCapacityPerMonth: Math.round(effectiveMonthlyCapacity(a, year)) }
     : a
+
+  // Hybrid Wound Care Center: Y1 referral floor ramps from
+  // startingProcedureCapacity × netCap → netCap over Y1_RAMP_MONTHS.
+  // Cap stays at netCap (UTILIZATION_RAMP.hybridWound.y1 = 1.0).
+  // Other scenarios: leave _monthlyProcFloor undefined.
+  if (V12_HARDENING_ENABLED && a.scenario === 'hybridWound' && year === 1) {
+    const capModel = a.capacityModel?.hybridWound
+    if (capModel) {
+      const netCap = calcNetCapacity(capModel)
+      const start = a.startingProcedureCapacity
+      const step = (1.0 - start) / (Y1_RAMP_MONTHS - 1)
+      const floor = Array.from({ length: 12 }, (_, i) => {
+        const util = Math.min(start + step * i, 1.0)
+        return Math.round(netCap * util)
+      })
+      withCapacity = { ...withCapacity, _monthlyProcFloor: floor }
+    }
+  }
   if (year === 1) return withCapacity
   const sc = a.scenario
   const y2Growth = sv(a.y2VolumeGrowth, sc)

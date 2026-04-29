@@ -138,11 +138,12 @@ export default function DashboardPage() {
   const pl3 = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
   const widgetScenario: Scenario = assumptions.scenario
 
-  // 3-scenario toggle for dashboard (replaces legacy 2-button v10 selector).
+  // 4-scenario toggle for dashboard.
   const WIDGET_SCENARIOS: { key: Scenario; label: string; sub: string }[] = [
     { key: 'conservative', label: 'Downside',  sub: '65/35 mix · realization 83% · reimbursement pressure' },
     { key: 'base',         label: 'Base',      sub: '75/25 New Braunfels market · realization 94%' },
     { key: 'aggressive',   label: 'Upside',    sub: '85/15 via DTC under-65 targeted acquisition' },
+    { key: 'hybridWound',  label: 'Hybrid',    sub: 'Wound-care center referral base · M1 starts at slider %' },
   ]
 
   const y1Rev = dash.y1.grossRevenue
@@ -226,7 +227,7 @@ export default function DashboardPage() {
           <h2 className="text-sm font-semibold text-[#5faaa6] mb-4">Conversion Rate Controls</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             {SLIDERS.map(({ label, field, min, max, step }) => {
-              const vals = assumptions[field] as { conservative: number; base: number; aggressive: number }
+              const vals = assumptions[field] as { conservative: number; base: number; aggressive: number; hybridWound: number }
               const current = vals[assumptions.scenario]
               const tip = SLIDER_TOOLTIPS[field]
               return (
@@ -279,6 +280,36 @@ export default function DashboardPage() {
               {' — '}
               <span>{WIDGET_SCENARIOS.find(s => s.key === widgetScenario)?.sub}</span>
             </div>
+
+            {/* Hybrid Wound: starting procedure capacity slider (Y1 M1 utilization). */}
+            {widgetScenario === 'hybridWound' && (
+              <div className="mb-4 p-3 rounded-lg border border-gray-800 bg-gray-950/40">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs text-gray-300 font-medium">
+                    Starting Procedure Capacity
+                  </span>
+                  <span className="text-xs font-mono text-[#5faaa6]">
+                    {Math.round(assumptions.startingProcedureCapacity * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0.10}
+                  max={1.00}
+                  step={0.01}
+                  value={assumptions.startingProcedureCapacity}
+                  onChange={(e) => updateAssumption('startingProcedureCapacity', parseFloat(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-gray-700 accent-[#5faaa6]"
+                />
+                <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                  <span>10%</span>
+                  <span>100%</span>
+                </div>
+                <p className="text-[10px] text-gray-500 italic mt-1.5">
+                  Procedure capacity already filled in month 1 from wound care center referrals. Subsequent months ramp the remaining gap to 100% over Year 1.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-3">
               {([

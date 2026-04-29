@@ -35,36 +35,36 @@ export const LEAD_SOURCE_MIX: LeadSource[] = [
   {
     id: 'paidSearch',
     name: 'Paid Search (Google)',
-    volumeShare: { conservative: 0.40, base: 0.40, aggressive: 0.32 },
-    contactRate: { conservative: 0.42, base: 0.42, aggressive: 0.55 },
+    volumeShare: { conservative: 0.40, base: 0.40, aggressive: 0.32, hybridWound: 0.40 },
+    contactRate: { conservative: 0.42, base: 0.42, aggressive: 0.55, hybridWound: 0.42 },
     note: 'High-intent CVI keywords. Contact rate driven by speed-to-lead (<5 min = 2–3× vs >1 hr).',
   },
   {
     id: 'paidSocial',
     name: 'Paid Social (Meta)',
-    volumeShare: { conservative: 0.22, base: 0.22, aggressive: 0.18 },
-    contactRate: { conservative: 0.35, base: 0.35, aggressive: 0.45 },
+    volumeShare: { conservative: 0.22, base: 0.22, aggressive: 0.18, hybridWound: 0.22 },
+    contactRate: { conservative: 0.35, base: 0.35, aggressive: 0.45, hybridWound: 0.35 },
     note: 'Symptom-aware cold audience. Requires retargeting + SMS nurture to lift contact.',
   },
   {
     id: 'organic',
     name: 'Organic Web / SEO',
-    volumeShare: { conservative: 0.18, base: 0.18, aggressive: 0.20 },
-    contactRate: { conservative: 0.60, base: 0.60, aggressive: 0.72 },
+    volumeShare: { conservative: 0.18, base: 0.18, aggressive: 0.20, hybridWound: 0.18 },
+    contactRate: { conservative: 0.60, base: 0.60, aggressive: 0.72, hybridWound: 0.60 },
     note: 'Branded + CVI-symptom SEO; higher intent than paid social. Compounds with authority.',
   },
   {
     id: 'referral',
     name: 'Physician Referral / Direct',
-    volumeShare: { conservative: 0.15, base: 0.15, aggressive: 0.20 },
-    contactRate: { conservative: 0.90, base: 0.90, aggressive: 0.94 },
+    volumeShare: { conservative: 0.15, base: 0.15, aggressive: 0.20, hybridWound: 0.15 },
+    contactRate: { conservative: 0.90, base: 0.90, aggressive: 0.94, hybridWound: 0.90 },
     note: 'PCPs, cardiology, wound care, repeat caller. Near-guaranteed contact; low CPL.',
   },
   {
     id: 'repeat',
     name: 'Repeat / Reactivation',
-    volumeShare: { conservative: 0.05, base: 0.05, aggressive: 0.10 },
-    contactRate: { conservative: 0.85, base: 0.85, aggressive: 0.92 },
+    volumeShare: { conservative: 0.05, base: 0.05, aggressive: 0.10, hybridWound: 0.05 },
+    contactRate: { conservative: 0.85, base: 0.85, aggressive: 0.92, hybridWound: 0.85 },
     note: '2nd-leg, prior self-pay, referrals of referrals. Requires active reactivation SMS/email.',
   },
 ]
@@ -79,6 +79,7 @@ export function compositeContactRates(mix: LeadSource[] = LEAD_SOURCE_MIX): Scen
     conservative: calcCompositeContactRate('conservative', mix),
     base: calcCompositeContactRate('base', mix),
     aggressive: calcCompositeContactRate('aggressive', mix),
+    hybridWound: calcCompositeContactRate('hybridWound', mix),
   }
 }
 
@@ -88,6 +89,7 @@ export function leadSourceVolumeChecks(mix: LeadSource[] = LEAD_SOURCE_MIX): Rec
     conservative: mix.reduce((a, s) => a + s.volumeShare.conservative, 0),
     base:         mix.reduce((a, s) => a + s.volumeShare.base, 0),
     aggressive:   mix.reduce((a, s) => a + s.volumeShare.aggressive, 0),
+    hybridWound:  mix.reduce((a, s) => a + s.volumeShare.hybridWound, 0),
   }
 }
 
@@ -102,6 +104,7 @@ export const COMPLEXITY_DISTRIBUTION: ScenarioValues<ComplexityDistribution> = {
   conservative: { pctLow: 0.25, pctMid: 0.50, pctHigh: 0.25, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
   base:         { pctLow: 0.25, pctMid: 0.50, pctHigh: 0.25, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
   aggressive:   { pctLow: 0.15, pctMid: 0.40, pctHigh: 0.45, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
+  hybridWound:  { pctLow: 0.25, pctMid: 0.50, pctHigh: 0.25, meanLowProcs: 1.5, meanMidProcs: 3.5, meanHighProcs: 6.0 },
 }
 
 export function calcWeightedProcsFromDistribution(d: ComplexityDistribution): number {
@@ -116,6 +119,7 @@ export const CAPACITY_MODEL: ScenarioValues<CapacityModel> = {
   conservative: { procDaysPerMonth: 18, procsPerDay: 8, noShowRate: 0.10, cancellationRate: 0.05 },
   base:         { procDaysPerMonth: 18, procsPerDay: 8, noShowRate: 0.10, cancellationRate: 0.05 },
   aggressive:   { procDaysPerMonth: 20, procsPerDay: 9, noShowRate: 0.05, cancellationRate: 0.03 },
+  hybridWound:  { procDaysPerMonth: 18, procsPerDay: 8, noShowRate: 0.10, cancellationRate: 0.05 },
 }
 
 export function calcNetCapacity(c: CapacityModel): number {
@@ -128,6 +132,10 @@ export const UTILIZATION_RAMP: ScenarioValues<UtilizationRamp> = {
   conservative: { y1: 0.70, y2: 0.85, y3: 0.95 },
   base:         { y1: 0.70, y2: 0.85, y3: 0.95 },
   aggressive:   { y1: 0.75, y2: 0.90, y3: 1.00 },
+  // Hybrid Wound: Y1 utilization is overridden per-month by _monthlyMaxCapacity
+  // (computed in adjustAssumptionsForYear from startingProcedureCapacity).
+  // Y2/Y3 = 100% — embedded referral base persists, capacity structurally filled.
+  hybridWound:  { y1: 1.00, y2: 1.00, y3: 1.00 },
 }
 
 /** Net Realization Factor — SC row 309
@@ -138,6 +146,7 @@ export const NET_REALIZATION_FACTOR: ScenarioValues = {
   conservative: 0.83,
   base:         0.94,
   aggressive:   0.96,
+  hybridWound:  0.94,
 }
 
 /** Targeted Acquisition Mix — SC row 319 (commercial share)
@@ -147,6 +156,7 @@ export const TARGETED_COMMERCIAL_SHARE: ScenarioValues = {
   conservative: 0.65,
   base:         0.75,
   aggressive:   0.85,
+  hybridWound:  0.75,
 }
 
 /** US Billing per treated patient (v12 hardening Path B).
@@ -160,6 +170,7 @@ export const US_REVENUE_PER_PATIENT: ScenarioValues = {
   conservative: 925,
   base:         1295,
   aggressive:   1480,
+  hybridWound:  1295,
 }
 
 /** Derived: weighted procs/patient per scenario (replaces flat 4.0 when flag on) */
@@ -167,6 +178,7 @@ const DERIVED_WEIGHTED_PROCS: ScenarioValues = {
   conservative: calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.conservative),
   base:         calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.base),
   aggressive:   calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.aggressive),
+  hybridWound:  calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.hybridWound),
 }
 
 // v12 ── PATHWAY ECONOMICS (replaces flat procsPerPatient input)
@@ -176,9 +188,9 @@ const DERIVED_WEIGHTED_PROCS: ScenarioValues = {
 // Source: CuraVein_Integrated_v12.xlsx → SC!C224:E226 (pre-hardening) / SC!C263:E263 (post).
 const EXPECTED_PATHWAY_PROCS: ScenarioValues = V12_HARDENING_ENABLED
   ? DERIVED_WEIGHTED_PROCS                                            // Down 2.95 / Base 3.62 / Up 4.33
-  : { conservative: 4.0, base: 4.0, aggressive: 4.0 }                 // legacy flat 4.0
+  : { conservative: 4.0, base: 4.0, aggressive: 4.0, hybridWound: 4.0 }                 // legacy flat 4.0
 // ISOLATED DOWNSIDE: Pathway completion Conservative = Base (not a downside lever).
-const PATHWAY_COMPLETION:    ScenarioValues = { conservative: 0.85, base: 0.85, aggressive: 0.95 }
+const PATHWAY_COMPLETION:    ScenarioValues = { conservative: 0.85, base: 0.85, aggressive: 0.95, hybridWound: 0.85 }
 function effectiveProcs(scenario: Scenario): number {
   return EXPECTED_PATHWAY_PROCS[scenario] * PATHWAY_COMPLETION[scenario]
 }
@@ -186,6 +198,7 @@ const DERIVED_PROCS_PER_PATIENT: ScenarioValues = {
   conservative: effectiveProcs('conservative'),  // 2.60
   base:         effectiveProcs('base'),           // 3.40
   aggressive:   effectiveProcs('aggressive'),     // 3.80
+  hybridWound:  effectiveProcs('hybridWound'),    // 3.40 (= base)
 }
 
 // Composite contact rate seeds (Down 37.9% / Base 53.0% / Aggressive 68.1%).
@@ -198,11 +211,11 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   // Conservative differs from Base ONLY on: netRealizationFactor (88% vs 92%) +
   // targetedCommercialShare (68% vs 75%). This prevents compound-negative pessimism
   // and guarantees Y3 Conservative EBITDA > 0.
-  cpl: { conservative: 60, base: 60, aggressive: 45 },
+  cpl: { conservative: 60, base: 60, aggressive: 45, hybridWound: 60 },
   contactRate: DERIVED_CONTACT_RATE,  // composite: Conservative=Base=53.0% (see LEAD_SOURCE_MIX below)
-  bookingRate: { conservative: 0.60, base: 0.60, aggressive: 0.70 },
-  showRate: { conservative: 0.78, base: 0.78, aggressive: 0.85 },
-  treatmentConversion: { conservative: 0.65, base: 0.65, aggressive: 0.75 },
+  bookingRate: { conservative: 0.60, base: 0.60, aggressive: 0.70, hybridWound: 0.60 },
+  showRate: { conservative: 0.78, base: 0.78, aggressive: 0.85, hybridWound: 0.78 },
+  treatmentConversion: { conservative: 0.65, base: 0.65, aggressive: 0.75, hybridWound: 0.65 },
   // v12 — DERIVED = expectedPathwayProcs × pathwayCompletion. Was flat {3.0, 3.5, 4.0}.
   // Effective: Down 2.60 / Base 3.40 / Aggressive 3.80. Fixes v11 inversion (Aggressive < Base).
   procsPerPatient: DERIVED_PROCS_PER_PATIENT,
@@ -215,10 +228,14 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   netRealizationFactor: NET_REALIZATION_FACTOR,
   targetedCommercialShare: TARGETED_COMMERCIAL_SHARE,
   usRevenuePerPatient: US_REVENUE_PER_PATIENT,
+  // Hybrid Wound Care Center Referral Base — Month-1 utilized procedure capacity.
+  // Range 0.10-1.00. Default 0.75 = 75% of net capacity filled in Month 1 from
+  // embedded wound-care referrals. Only consumed when scenario === 'hybridWound'.
+  startingProcedureCapacity: 0.75,
   maxCapacityPerMonth: 146,
-  medicareRate: { conservative: 1408, base: 1408, aggressive: 1408 }, // SC!E130 — CPT weighted base (was 1147)
+  medicareRate: { conservative: 1408, base: 1408, aggressive: 1408, hybridWound: 1408 }, // SC!E130 — CPT weighted base (was 1147)
   // Commercial multiplier v11: BCBS 30%×1.30 + Aetna/UHC/Cigna 70%×1.58 = 1.496 (SC!D156→F15)
-  commercialMultiplier: { conservative: 1.496, base: 1.496, aggressive: 1.496 },
+  commercialMultiplier: { conservative: 1.496, base: 1.496, aggressive: 1.496, hybridWound: 1.496 },
   bcbsMultiplier: 1.30,              // SC!C154 — BCBS rate vs Medicare
   otherCommercialMultiplier: 1.58,   // SC!C155 — Aetna/UHC/Cigna blended
   bcbsShareOfCommercial: 0.30,       // SC!B154 — BCBS 30% of commercial
@@ -245,6 +262,8 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
     conservative: [3500, 4000, 4500, 5500, 7000, 8500, 10000, 12000, 14000, 22000, 24000, 26000],
     base:         [3500, 4000, 4500, 5500, 7000, 8500, 10000, 12000, 14000, 22000, 24000, 26000],
     aggressive:   [6000, 8000, 11000, 14000, 17000, 20000, 22000, 24000, 26000, 30000, 32000, 34000],
+    // Hybrid: same DTC ramp as Base — wound-care referral floor is in addition to DTC, not replacement.
+    hybridWound:  [3500, 4000, 4500, 5500, 7000, 8500, 10000, 12000, 14000, 22000, 24000, 26000],
   },
   physicianSalary: 200000,
   rvtSalary: 124800,
@@ -259,8 +278,8 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   billingPctOfRevenue: 0.02,  // AUDIT 2026-04-23 S-3 — surfaced from magic-number in calcOpexMonth
   managementFeeRate: 0.08,
   // ISOLATED DOWNSIDE: Conservative = Base for Y2/Y3 growth (not a downside lever).
-  y2VolumeGrowth: { conservative: 0.39, base: 0.39, aggressive: 0.55 },
-  y3VolumeGrowth: { conservative: 0.40, base: 0.40, aggressive: 0.55 },
+  y2VolumeGrowth: { conservative: 0.39, base: 0.39, aggressive: 0.55, hybridWound: 0.39 },
+  y3VolumeGrowth: { conservative: 0.40, base: 0.40, aggressive: 0.55, hybridWound: 0.40 },
   varithenaShare: 0.25,      // IS!B13 (was 0.15)
   varithenaRates36465: { aetna: 1320, bcbs: 1450, humana: 1290, uhc: 1380, medicare: 1300 },
   varithenaRates36466: { aetna: 1420, bcbs: 1560, humana: 1380, uhc: 1490, medicare: 1400 },
