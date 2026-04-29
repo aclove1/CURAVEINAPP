@@ -136,6 +136,7 @@ export interface Assumptions {
   malpractice: number
   emr: number
   billing: number
+  billingPctOfRevenue: number  // outsourced RCM pass-through as % of gross revenue (IS default 2%)
   managementFeeRate: number
   y2VolumeGrowth: ScenarioValues
   y3VolumeGrowth: ScenarioValues
@@ -169,6 +170,12 @@ export interface RevenueMonth {
   netRevenue: number
   medicareRevenue: number
   commercialRevenue: number
+  // AUDIT 2026-04-26 C-12: US billing surfaced as own field so callers can
+  // reconcile grossRevenue = medicareRevenue + commercialRevenue + usRevenue.
+  // Previously usRevenue was bundled into grossRevenue with no breakout, and
+  // the medicare/commercial split omitted realization — diverging from the
+  // gross by ~6%.
+  usRevenue: number
   procs: number
 }
 

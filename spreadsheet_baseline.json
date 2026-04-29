@@ -1,133 +1,184 @@
 {
+  "_meta": {
+    "sourced_at": "2026-04-24",
+    "source_workbook": "CuraVein_Integrated_v12.xlsx",
+    "audit_reference": "AUDIT 2026-04-23 C-5 resolved; AUDIT 2026-04-24 refresh",
+    "note": "Markets listed explicitly; default `newBraunfels` (25/75) sets the app's payer mix. Forney kept for alternate market toggle."
+  },
   "commercial_multiplier": {
     "sheet": "SC",
     "cell": "F15",
-    "value": 1.496
+    "value": 1.496,
+    "note": "BCBS 30% \u00d7 1.30 + Aetna/UHC/Cigna 70% \u00d7 1.58"
   },
-  "govt_payer_mix": {
-    "sheet": "SC",
-    "cell": "F16",
-    "value": 0.15
+  "payer_mix_by_market": {
+    "newBraunfels": {
+      "sheet": "SC",
+      "cell": "B145:C145",
+      "govt": 0.25,
+      "commercial": 0.75,
+      "note": "Comal Co., 18% age 65+ \u2192 25% govt payer share (app default)"
+    },
+    "forney": {
+      "sheet": "SC",
+      "cell": "B146:C146",
+      "govt": 0.15,
+      "commercial": 0.85,
+      "note": "Kaufman Co., 11% age 65+ \u2192 15% govt payer share"
+    }
   },
-  "commercial_payer_mix": {
-    "sheet": "SC",
-    "cell": "F17",
-    "value": 0.85
-  },
-  "blended_rate": {
-    "sheet": "SC",
-    "cell": "F18",
-    "value": 2002
+  "blended_rate_by_market": {
+    "newBraunfels_base": {
+      "value": 1816,
+      "note": "Base scenario, targeted commercial 75% \u00d7 net realization 0.94 \u2192 steady-state $/proc"
+    },
+    "newBraunfels_conservative": {
+      "value": 1545,
+      "note": "Conservative scenario, targeted commercial 65% \u00d7 net realization 0.83"
+    },
+    "newBraunfels_aggressive": {
+      "value": 1922,
+      "note": "Aggressive scenario, targeted commercial 85% \u00d7 net realization 0.96"
+    },
+    "forney_legacy_pre_realization": {
+      "sheet": "SC",
+      "cell": "F18",
+      "value": 2002,
+      "note": "Pre-v12 calculation: 15% gov / 85% commercial \u00d7 1.496 mult \u00d7 $1,408 base. No net realization factor applied."
+    }
   },
   "cpt_weighted_base": {
     "sheet": "SC",
     "cell": "E130",
-    "value": 1408
+    "value": 1408,
+    "note": "SUMPRODUCT of 4 CPT codes (36482, 36465, 36466, 36475) \u00d7 volume shares"
   },
-  "max_capacity": {
+  "max_capacity_peak": {
     "sheet": "SC",
     "cell": "D45",
-    "value": 146
-  },
-  "blended_cpl": {
-    "sheet": "SC",
-    "cell": "D7",
-    "value": 51
-  },
-  "contact_rate": {
-    "sheet": "SC",
-    "cell": "D8",
-    "value": 0.530,
-    "note": "v12: derived from Lead Source Mix composite (was 0.4 hardcoded)"
-  },
-  "booking_rate": {
-    "sheet": "SC",
-    "cell": "D9",
-    "value": 0.6
-  },
-  "show_rate": {
-    "sheet": "SC",
-    "cell": "D10",
-    "value": 0.78
-  },
-  "treatment_conversion": {
-    "sheet": "SC",
-    "cell": "D11",
-    "value": 0.65
-  },
-  "procs_per_episode": {
-    "sheet": "SC",
-    "cell": "D12",
-    "value": 3.4,
-    "note": "v12: derived = expected_pathway_procs × pathway_completion (was 3.5 hardcoded)"
-  },
-  "expected_pathway_procs": {
-    "sheet": "SC",
-    "cell": "D224",
-    "value": 3.62,
-    "note": "v12 hardening: derived from COMPLEXITY_DISTRIBUTION weighted mean (Base). Was flat 4.0. SC!D263 weighted mean."
-  },
-  "weighted_procs_per_patient_base": {
-    "sheet": "SC",
-    "cell": "D263",
-    "value": 3.62,
-    "note": "v12 hardening NEW: Σ (pctBucket × meanProcs). Base: 25%×1.5 + 50%×3.5 + 25%×6.0 = 3.625"
+    "value": 146,
+    "note": "Peak physician ceiling. Y1 steady-state is lower (see net_capacity_base \u00d7 utilization_ramp)."
   },
   "net_capacity_base": {
     "sheet": "SC",
     "cell": "D281",
-    "value": 108,
-    "note": "v12 hardening NEW: 18 days × 7 procs × 0.9 no-show × 0.95 cancel = 108/mo. Was flat 146."
+    "value": 123,
+    "note": "Path B: 18 days \u00d7 8 procs/day \u00d7 0.90 no-show \u00d7 0.95 cancel = 123/mo net capacity. Was 108 pre-Path-B."
   },
   "utilization_ramp_base": {
     "sheet": "SC",
     "cell": "C295:E295",
     "value": { "y1": 0.70, "y2": 0.85, "y3": 0.95 },
-    "note": "v12 hardening NEW: fraction of net capacity utilized by year. Base scenario."
+    "note": "Fraction of net capacity utilized by year, Base scenario."
   },
-  "net_realization_factor_base": {
+  "net_realization_factor": {
     "sheet": "SC",
     "cell": "D309",
-    "value": 0.92,
-    "note": "v12 hardening NEW: collections net of denials/write-offs. Industry 88-95%. Base 92%."
+    "conservative": 0.83,
+    "base": 0.94,
+    "aggressive": 0.96,
+    "note": "Path B: collections net of denials/write-offs. Conservative reflects denial pressure; Base matures via RCM; Aggressive top-quartile RCM."
   },
-  "targeted_commercial_share_base": {
+  "targeted_commercial_share": {
     "sheet": "SC",
     "cell": "D319",
-    "value": 0.75,
-    "note": "v12 hardening NEW: operator-controlled payer mix via channel strategy. Down 65 / Base 75 / Up 85."
+    "conservative": 0.65,
+    "base": 0.75,
+    "aggressive": 0.85,
+    "note": "Operator-controlled payer mix via channel strategy."
+  },
+  "blended_cpl": {
+    "sheet": "SC",
+    "cell": "D7",
+    "conservative": 60,
+    "base": 60,
+    "aggressive": 45
+  },
+  "contact_rate": {
+    "sheet": "SC",
+    "cell": "D8",
+    "conservative": 0.530,
+    "base": 0.530,
+    "aggressive": 0.681,
+    "note": "v12: composite from Lead Source Mix, \u03a3 (volumeShare \u00d7 contactRate)"
+  },
+  "booking_rate": {
+    "sheet": "SC",
+    "cell": "D9",
+    "conservative": 0.60,
+    "base": 0.60,
+    "aggressive": 0.70
+  },
+  "show_rate": {
+    "sheet": "SC",
+    "cell": "D10",
+    "conservative": 0.78,
+    "base": 0.78,
+    "aggressive": 0.85
+  },
+  "treatment_conversion": {
+    "sheet": "SC",
+    "cell": "D11",
+    "conservative": 0.65,
+    "base": 0.65,
+    "aggressive": 0.75
+  },
+  "effective_procs_per_patient": {
+    "sheet": "SC",
+    "cell": "D12",
+    "conservative": 3.08,
+    "base": 3.08,
+    "aggressive": 4.11,
+    "note": "v12: derived = expectedPathwayProcs \u00d7 pathwayCompletion. Isolated downside: Conservative = Base."
+  },
+  "expected_pathway_procs": {
+    "sheet": "SC",
+    "cell": "D263",
+    "conservative": 3.625,
+    "base": 3.625,
+    "aggressive": 4.325,
+    "note": "v12 hardening: weighted mean from COMPLEXITY_DISTRIBUTION (pctLow \u00d7 meanLow + pctMid \u00d7 meanMid + pctHigh \u00d7 meanHigh)."
   },
   "pathway_completion": {
     "sheet": "SC",
     "cell": "D225",
-    "value": 0.85,
-    "note": "v12 NEW: % of treated patients who complete full plan (Down 65 / Base 85 / Agg 95)"
+    "conservative": 0.85,
+    "base": 0.85,
+    "aggressive": 0.95,
+    "note": "v12: % of treated patients completing the full plan. Isolated downside: Conservative = Base."
   },
   "lead_source_mix_composite_contact_rate": {
     "sheet": "Lead Source Mix",
     "cell": "C12",
-    "value": 0.530,
-    "note": "v12 NEW: composite contact rate, Σ (volumeShare × contactRate) across 5 sources — Base scenario"
+    "conservative": 0.530,
+    "base": 0.530,
+    "aggressive": 0.681,
+    "note": "v12: Paid Search / Meta / SEO / Referral / Repeat weighted composite."
   },
   "y2_growth": {
     "sheet": "SC",
     "cell": "D37",
-    "value": 0.39
+    "conservative": 0.39,
+    "base": 0.39,
+    "aggressive": 0.55,
+    "note": "AUDIT 2026-04-23 C-4 resolved: now wired as marketing-spend scalar in adjustAssumptionsForYear."
   },
   "y3_growth": {
     "sheet": "SC",
     "cell": "D38",
-    "value": 0.4
+    "conservative": 0.40,
+    "base": 0.40,
+    "aggressive": 0.55
   },
-  "bcbs_share": {
+  "bcbs_share_of_commercial": {
     "sheet": "SC",
     "cell": "B154",
-    "value": 0.3
+    "value": 0.30
   },
   "bcbs_multiplier": {
     "sheet": "SC",
     "cell": "C154",
-    "value": 1.3
+    "value": 1.30
   },
   "aetna_uhc_cigna_multiplier": {
     "sheet": "SC",
@@ -142,31 +193,39 @@
   "rfa_mix": {
     "sheet": "IS",
     "cell": "B11",
-    "value": 0.1
+    "value": 0.10
   },
   "sclero_mix": {
     "sheet": "IS",
     "cell": "B12",
-    "value": 0
+    "value": 0.00,
+    "note": "Retired from active mix, superseded by Varithena CPTs."
   },
   "varithena_mix": {
     "sheet": "IS",
     "cell": "B13",
     "value": 0.25
   },
-  "varithena_cost_proc": {
+  "varithena_cost_per_proc": {
     "sheet": "IS",
     "cell": "F51",
-    "value": 270.14575
+    "value": 270.15,
+    "note": "= F47 + $150 drug. F47 includes waste factor from spreadsheet."
   },
   "venaseal_pts_per_kit": {
     "sheet": "IS",
     "cell": "B8",
     "value": 2.5
   },
-  "venaseal_kit_cost": {
+  "venaseal_kit_unit_cost": {
     "sheet": "IS",
     "cell": "D16",
-    "value": 0.4
+    "value": 900,
+    "note": "AUDIT 2026-04-23 C-5 resolved: prior value 0.4 was a lookup artifact, not the kit price."
+  },
+  "billing_pct_of_revenue": {
+    "sheet": "IS",
+    "value": 0.02,
+    "note": "AUDIT 2026-04-23 S-3 resolved: surfaced from magic-number; now editable via Assumptions."
   }
 }

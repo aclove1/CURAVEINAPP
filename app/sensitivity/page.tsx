@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useModelStore } from '@/lib/store'
-import { calcFunnelMonth } from '@/lib/model'
+import { calcFunnelMonth, adjustAssumptionsForYear } from '@/lib/model'
 import { TopBar } from '@/components/layout/TopBar'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
 import { getCitationById } from '@/lib/citations'
@@ -106,7 +106,15 @@ function HeatmapTable({ title, subtitle, rowLabel, colLabel, rowValues, colValue
 export default function SensitivityPage() {
   const { assumptions } = useModelStore()
 
-  const funnelBase = useMemo(() => calcFunnelMonth(12, assumptions), [assumptions])
+  // AUDIT 2026-04-23 S-1 resolved: honor the operator-selected scenario so
+  // leads (already scenario-driven) and conversion rates below don't mix
+  // scenarios. Also honor Y1-adjusted capacity (adjusted in funnelBase).
+  const sc = assumptions.scenario
+  const adjY1 = useMemo(() => adjustAssumptionsForYear(1, assumptions), [assumptions])
+  const funnelBase = useMemo(() => calcFunnelMonth(12, adjY1), [adjY1])
+  const effectiveProcsPerPatient = useMemo(() => {
+    return adjY1.expectedPathwayProcs[sc] * adjY1.pathwayCompletion[sc]
+  }, [adjY1, sc])
 
   const table1Rows = [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
   const table1Cols = [0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75]
@@ -114,38 +122,38 @@ export default function SensitivityPage() {
   const computeTable1 = useMemo(() => (contactRate: number, treatmentConv: number): number => {
     const leads = funnelBase.leads
     const contacts = Math.floor(leads * contactRate)
-    const booked = Math.floor(contacts * assumptions.bookingRate.base)
-    const shows = Math.floor(booked * assumptions.showRate.base)
+    const booked = Math.floor(contacts * assumptions.bookingRate[sc])
+    const shows = Math.floor(booked * assumptions.showRate[sc])
     const treated = Math.floor(shows * treatmentConv)
-    const rawProcs = Math.round(treated * assumptions.procsPerPatient.base)
-    return Math.min(rawProcs, assumptions.maxCapacityPerMonth)
-  }, [funnelBase.leads, assumptions])
+    const rawProcs = Math.round(treated * effectiveProcsPerPatient)
+    return Math.min(rawProcs, adjY1.maxCapacityPerMonth)
+  }, [funnelBase.leads, assumptions, sc, effectiveProcsPerPatient, adjY1.maxCapacityPerMonth])
 
   const table2Rows = [0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
   const table2Cols = [0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
 
   const computeTable2 = useMemo(() => (bookingRate: number, showRate: number): number => {
     const leads = funnelBase.leads
-    const contacts = Math.floor(leads * assumptions.contactRate.base)
+    const contacts = Math.floor(leads * assumptions.contactRate[sc])
     const booked = Math.floor(contacts * bookingRate)
     const shows = Math.floor(booked * showRate)
-    const treated = Math.floor(shows * assumptions.treatmentConversion.base)
-    const rawProcs = Math.round(treated * assumptions.procsPerPatient.base)
-    return Math.min(rawProcs, assumptions.maxCapacityPerMonth)
-  }, [funnelBase.leads, assumptions])
+    const treated = Math.floor(shows * assumptions.treatmentConversion[sc])
+    const rawProcs = Math.round(treated * effectiveProcsPerPatient)
+    return Math.min(rawProcs, adjY1.maxCapacityPerMonth)
+  }, [funnelBase.leads, assumptions, sc, effectiveProcsPerPatient, adjY1.maxCapacityPerMonth])
 
   const table3Rows = [30, 40, 50, 60, 70, 80]
   const table3Cols = [8000, 10000, 12000, 14000, 16000, 18000, 20000]
 
   const computeTable3 = useMemo(() => (cpl: number, spend: number): number => {
     const leads = Math.floor(spend / cpl)
-    const contacts = Math.floor(leads * assumptions.contactRate.base)
-    const booked = Math.floor(contacts * assumptions.bookingRate.base)
-    const shows = Math.floor(booked * assumptions.showRate.base)
-    const treated = Math.floor(shows * assumptions.treatmentConversion.base)
-    const rawProcs = Math.round(treated * assumptions.procsPerPatient.base)
-    return Math.min(rawProcs, assumptions.maxCapacityPerMonth)
-  }, [assumptions])
+    const contacts = Math.floor(leads * assumptions.contactRate[sc])
+    const booked = Math.floor(contacts * assumptions.bookingRate[sc])
+    const shows = Math.floor(booked * assumptions.showRate[sc])
+    const treated = Math.floor(shows * assumptions.treatmentConversion[sc])
+    const rawProcs = Math.round(treated * effectiveProcsPerPatient)
+    return Math.min(rawProcs, adjY1.maxCapacityPerMonth)
+  }, [assumptions, sc, effectiveProcsPerPatient, adjY1.maxCapacityPerMonth])
 
   return (
     <div>
