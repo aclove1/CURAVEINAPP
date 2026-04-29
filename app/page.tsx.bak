@@ -1,3 +1,0 @@
-// @deprecated — legacy dashboard snapshot. Retained for reference only.
-// AUDIT 2026-04-24 structural: overwritten to prevent accidental build inclusion.
-// Current dashboard: app/page.tsx (single-engine, v12-hardened).
