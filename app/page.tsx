@@ -17,15 +17,17 @@ import {
 } from '@/lib/model'
 import type { Scenario } from '@/lib/types'
 
-const EBITDA_TOOLTIPS: Record<string, string> = {
+// AUDIT 2026-04-23 C-7 resolved: tooltip now labels revenue dynamics on the
+// revenue chart. Year notes rephrased for revenue (not EBITDA) context.
+const REVENUE_TOOLTIPS: Record<string, string> = {
   'Year 1': 'Ramp year \u2014 funnel building, below capacity',
   'Year 2': 'Stabilization \u2014 conversion rates improve YoY',
   'Year 3': 'Maturity \u2014 full payer credentialing, referral network scaled',
 }
 
-function EbitdaTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null
-  const yearNote = label ? EBITDA_TOOLTIPS[label] : ''
+  const yearNote = label ? REVENUE_TOOLTIPS[label] : ''
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs">
       <div className="text-gray-400 mb-1">{label}</div>
@@ -61,11 +63,14 @@ const SLIDER_TOOLTIPS: Record<string, { text: string; citationId: string }> = {
   treatmentConversion: { text: 'Elective conversion 41\u201360%', citationId: 'treatmentRate' },
 }
 
+// AUDIT 2026-04-23 S-8 resolved: max values aligned with CONVERSION_CAPS in
+// lib/model.ts so the operator can reach every value that Y2/Y3 boost logic
+// can produce (prevents internally inconsistent Aggressive Y3 states).
 const SLIDERS = [
-  { label: 'Contact Rate', field: 'contactRate' as const, min: 0.10, max: 0.70, step: 0.01 },
-  { label: 'Booking Rate', field: 'bookingRate' as const, min: 0.20, max: 0.80, step: 0.01 },
-  { label: 'Show Rate', field: 'showRate' as const, min: 0.40, max: 0.90, step: 0.01 },
-  { label: 'Treatment Conversion', field: 'treatmentConversion' as const, min: 0.30, max: 0.80, step: 0.01 },
+  { label: 'Contact Rate', field: 'contactRate' as const, min: 0.10, max: 0.80, step: 0.01 },
+  { label: 'Booking Rate', field: 'bookingRate' as const, min: 0.20, max: 0.75, step: 0.01 },
+  { label: 'Show Rate', field: 'showRate' as const, min: 0.40, max: 0.92, step: 0.01 },
+  { label: 'Treatment Conversion', field: 'treatmentConversion' as const, min: 0.30, max: 0.78, step: 0.01 },
 ]
 
 export default function DashboardPage() {
@@ -112,10 +117,16 @@ export default function DashboardPage() {
       netRevenue: pl.netRevenue,
     })
 
+    // AUDIT 2026-04-24 C-9 resolved: use PL-derived per-year blended rate
+    // (grossRevenue / totalProcs, includes US revenue per patient) for ALL
+    // three years. Previously Y1 used PL-derived and Y2/Y3 used
+    // calcOverallBlendedRate (proc only, excludes US revenue) — mixing
+    // definitions within the same column.
     return {
       y1: summarize(y1PL),
-      y2: { ...summarize(y2PL), blendedRate: matureBlended },
-      y3: { ...summarize(y3PL), blendedRate: matureBlended },
+      y2: summarize(y2PL),
+      y3: summarize(y3PL),
+      matureBlendedProcOnly: matureBlended,
       y1Months,
       scenario: { procsPerPatient, maxCapacityPerMonth: maxCapacity },
     }
@@ -138,14 +149,16 @@ export default function DashboardPage() {
   const y2Rev = dash.y2.grossRevenue
   const y3Rev = dash.y3.grossRevenue
 
+  // AUDIT 2026-04-23 C-7 resolved: dataKey renamed ebitda → revenue so the
+  // chart data model matches what it renders (Gross Revenue trajectory).
   const chartData = [
-    { year: 'Year 1', ebitda: y1Rev },
-    { year: 'Year 2', ebitda: y2Rev },
-    { year: 'Year 3', ebitda: y3Rev },
+    { year: 'Year 1', revenue: y1Rev },
+    { year: 'Year 2', revenue: y2Rev },
+    { year: 'Year 3', revenue: y3Rev },
   ]
 
   const y1Procs = dash.y1.annualProcs
-  const matureRate = dash.y2.blendedRate
+  const matureRate = dash.matureBlendedProcOnly
   const monthsAtCap = dash.y1Months.filter(m => m.utilizationPct >= 1).length
 
   const totalMarketing = dash.y1Months.reduce((s, m) => s + m.marketingSpend, 0)
@@ -302,17 +315,16 @@ export default function DashboardPage() {
               targets, not guarantees. Downside = isolated reimbursement pressure
               (net realization 83% + 65% commercial mix). Upside = 85% commercial mix via
               DTC under-65 targeted acquisition (symptom-based funnel skews younger, self-referral
-              bias, procedure-eligible population differs from general demographic). Computed from
-              {' '}<span className="font-mono">lib/model.ts::calcAnnualPL</span> — the legacy KPI
-              cards above still read the v10 shadow engine and may differ (~$22K Y1); AUDIT.md C-4
-              consolidation pending.
+              bias, procedure-eligible population differs from general demographic). Single-engine
+              compute from <span className="font-mono">lib/model.ts::calcAnnualPL</span>; KPI cards
+              above also source from the same engine (v10 shadow retired per AUDIT 2026-04-23 C-1).
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <KpiCard label="Y1 Procedures" value={fmtNumber(y1Procs)} sub={monthsAtCap > 0 ? `${monthsAtCap} mo AT CAPACITY` : `${dash.scenario.maxCapacityPerMonth}/mo cap`} highlight={monthsAtCap > 0} />
-          <KpiCard label={<>Blended Rate <TooltipInfo text="Medicare weighted base $1,408 \u00d7 blended commercial multiplier 1.496\u00d7 (BCBS 30%\u00d71.30 + Aetna/UHC/Cigna 70%\u00d71.58) = $2,002 at 15% govt / 85% commercial \u2014 Forney market" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(matureRate, false)} sub="Mature (M7+)" />
+          <KpiCard label={<>Blended Rate <TooltipInfo text="Weighted Medicare base $1,408 \u00d7 (gov share + comm share \u00d7 1.496) \u00d7 net realization factor. Base scenario: 25% gov / 75% comm \u00d7 0.94 realization \u2192 ~$1,816/proc. Scenario-sensitive \u2014 Downside $1,545, Upside $1,922." href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(matureRate, false)} sub="Mature (M5+) / proc" />
           <KpiCard label={<>Revenue / Procedure <TooltipInfo text="Weighted avg across credentialing ramp months" href="/citations?highlight=revenuePerProcedure" /></>} value={fmtCurrency(revPerProc, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Revenue / Patient" value={fmtCurrency(revPerPatient, false)} sub="Before 8% mgmt fee" />
           <KpiCard label="Cost Per Acquisition" value={fmtCurrency(cpa, false)} sub="Marketing / treated" />
@@ -395,8 +407,8 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1_000_000).toFixed(1)}M`} />
-                <Tooltip content={<EbitdaTooltip />} cursor={{ fill: '#1f2937' }} />
-                <Bar dataKey="ebitda" name="Gross Revenue" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                <Tooltip content={<RevenueTooltip />} cursor={{ fill: '#1f2937' }} />
+                <Bar dataKey="revenue" name="Gross Revenue" fill="#14b8a6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -442,7 +454,7 @@ export default function DashboardPage() {
             <tbody>
               {([
                 { label: 'Annual Procedures', vals: [dash.y1.annualProcs, dash.y2.annualProcs, dash.y3.annualProcs], isCurrency: false },
-                { label: 'Blended Rate', vals: [dash.y1.blendedRate, dash.y2.blendedRate, dash.y3.blendedRate], isCurrency: true },
+                { label: 'Avg Gross Rev / Proc', vals: [dash.y1.blendedRate, dash.y2.blendedRate, dash.y3.blendedRate], isCurrency: true },
                 { label: 'Gross Revenue', vals: [y1Rev, y2Rev, y3Rev], isCurrency: true },
                 { label: 'Mgmt Fee (8%)', vals: [dash.y1.mgmtFee, dash.y2.mgmtFee, dash.y3.mgmtFee], isCurrency: true },
                 { label: 'Net Revenue', vals: [dash.y1.netRevenue, dash.y2.netRevenue, dash.y3.netRevenue], isCurrency: true },

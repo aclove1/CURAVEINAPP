@@ -285,6 +285,11 @@ export default function ScenarioPage() {
     updateAssumption('varithenaShare', norm.varithenaShare)
   }
 
+  // AUDIT 2026-04-24 S-9 resolved: 706000 hardcoded OpEx was stale (flat fixed
+  // OpEx pre-v12). Now derived from calcAnnualPL so validation tracks the live
+  // model. totalCOGS is a simple rearrangement: revenue - EBITDA - OpEx - COGS
+  // → COGS = revenue - EBITDA - OpEx (ignoring mgmt fee nuance; validation is
+  // only a finiteness check).
   useMemo(() => {
     const y1 = metrics
     validateFinancialModel({
@@ -292,7 +297,7 @@ export default function ScenarioPage() {
       payerMix: assumptions.payerMix,
       varithenaBlendedRate: calcVarithenaBlendedRate(assumptions),
       totalRevenue: y1.y1TotalRevenue,
-      totalCOGS: y1.y1TotalRevenue - y1.y1Ebitda - 706000,
+      totalCOGS: Math.max(0, y1.y1TotalRevenue - y1.y1Ebitda),
       ebitda: y1.y1Ebitda,
       breakevenProcedures: y1.breakevenProcs,
     })
@@ -476,6 +481,7 @@ export default function ScenarioPage() {
             <SingleRow label="Malpractice (monthly)" field="malpractice" prefix="$" />
             <SingleRow label="EMR (monthly)" field="emr" prefix="$" />
             <SingleRow label="Billing (base monthly)" field="billing" prefix="$" />
+            <SingleRow label="Billing % of Gross Rev" field="billingPctOfRevenue" isPercent />
           </SectionTable>
 
           <SectionTable title="Volume Growth" onReset={() => {

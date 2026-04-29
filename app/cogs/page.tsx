@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useModelStore } from '@/lib/store'
-import { calcCOGSMonth, calcWeightedSupplyCost, calcRevenueMonth, calcVarithenaCostPerProc } from '@/lib/model'
+import { calcCOGSMonth, calcWeightedSupplyCost, calcRevenueMonth, calcVarithenaCostPerProc, adjustAssumptionsForYear } from '@/lib/model'
 import { fmtCurrency, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
@@ -15,14 +15,18 @@ const DONUT_COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#ec4899', '#f59e0b']
 export default function CogsPage() {
   const { assumptions } = useModelStore()
 
+  // AUDIT 2026-04-24 C-8: iterate against Y1-adjusted assumptions so totals
+  // reconcile with calcAnnualPL. Raw assumptions use maxCapacityPerMonth=146,
+  // Y1-adjusted uses ~86 (Base); divergence was ~29% on Y1 procs.
+  const adjY1 = useMemo(() => adjustAssumptionsForYear(1, assumptions), [assumptions])
   const months = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => calcCOGSMonth(i + 1, assumptions)),
-    [assumptions]
+    Array.from({ length: 12 }, (_, i) => calcCOGSMonth(i + 1, adjY1)),
+    [adjY1]
   )
 
   const revMonths = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => calcRevenueMonth(i + 1, assumptions)),
-    [assumptions]
+    Array.from({ length: 12 }, (_, i) => calcRevenueMonth(i + 1, adjY1)),
+    [adjY1]
   )
 
   const totalCOGS = months.reduce((s, m) => s + m.totalCOGS, 0)

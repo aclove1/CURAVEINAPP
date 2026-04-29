@@ -26,7 +26,7 @@ export async function GET() {
   const y1Months = Array.from({ length: 12 }, (_, i) => {
     const m = i + 1
     const f = calcFunnelMonth(m, adjY1)
-    const r = calcRevenueMonth(m, adjY1)
+    const r = calcRevenueMonth(m, adjY1, 1)
     return {
       month: MONTH_LABELS[i],
       blendedRate: r.blendedRate,
@@ -34,6 +34,9 @@ export async function GET() {
       grossRevenue: r.grossRevenue,
       medicareRevenue: r.medicareRevenue,
       commercialRevenue: r.commercialRevenue,
+      // AUDIT 2026-04-26 C-12: surfaced so external diligence consumers can
+      // verify medicareRevenue + commercialRevenue + usRevenue == grossRevenue.
+      usRevenue: r.usRevenue,
     }
   })
 

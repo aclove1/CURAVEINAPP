@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, Legend, Line, ComposedChart
 } from 'recharts'
 import { useModelStore } from '@/lib/store'
-import { calcPLMonth, calcAnnualPL, calcOpexMonth } from '@/lib/model'
+import { calcPLMonth, calcAnnualPL, calcOpexMonth, adjustAssumptionsForYear } from '@/lib/model'
 import { fmtCurrency, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 
@@ -22,14 +22,19 @@ export default function PLPage() {
   const { assumptions } = useModelStore()
   const [view, setView] = useState<ViewMode>('monthly')
 
+  // AUDIT 2026-04-24 C-8: iterate against Y1-adjusted assumptions so the
+  // Monthly Y1 tab uses the same effective capacity as the 3-Year Annual tab
+  // (calcAnnualPL internally adjusts). Previously this page iterated against
+  // raw assumptions.maxCapacityPerMonth=146, diverging from annuals by ~29%.
+  const adjY1 = useMemo(() => adjustAssumptionsForYear(1, assumptions), [assumptions])
   const months = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => calcPLMonth(i + 1, assumptions)),
-    [assumptions]
+    Array.from({ length: 12 }, (_, i) => calcPLMonth(i + 1, adjY1)),
+    [adjY1]
   )
 
   const opexMonths = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => calcOpexMonth(i + 1, assumptions)),
-    [assumptions]
+    Array.from({ length: 12 }, (_, i) => calcOpexMonth(i + 1, adjY1)),
+    [adjY1]
   )
 
   const annuals = useMemo(() => ({

@@ -69,9 +69,14 @@ export default function FunnelPage() {
   const { assumptions } = useModelStore()
   const [tableYear, setTableYear] = useState<1 | 2 | 3>(1)
 
+  // AUDIT 2026-04-24 C-8: iterate against Y1-adjusted assumptions so the top-
+  // of-page KPI row (total/avg/peak procs, months-at-capacity) reconciles with
+  // the dashboard and with calcAnnualPL(1). Raw assumptions use maxCapacity=146
+  // while adjusted Y1 Base uses ~86 → 29% inter-page divergence pre-fix.
+  const adjY1 = useMemo(() => adjustAssumptionsForYear(1, assumptions), [assumptions])
   const months = useMemo(() =>
-    Array.from({ length: 12 }, (_, i) => calcFunnelMonth(i + 1, assumptions)),
-    [assumptions]
+    Array.from({ length: 12 }, (_, i) => calcFunnelMonth(i + 1, adjY1)),
+    [adjY1]
   )
 
   const tableMonths = useMemo(() => {
@@ -350,7 +355,7 @@ export default function FunnelPage() {
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.shows, 0))}</td>
                   <td className="px-4 py-2.5 text-right text-gray-200">{fmtNumber(tableMonths.reduce((s, m) => s + m.treated, 0))}</td>
                   <td className="px-4 py-2.5 text-right text-white">{fmtNumber(tableMonths.reduce((s, m) => s + m.cappedProcs, 0))}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400">{fmtPct(tableMonths.reduce((s, m) => s + m.cappedProcs, 0) / (assumptions.maxCapacityPerMonth * 12))}</td>
+                  <td className="px-4 py-2.5 text-right text-gray-400">{fmtPct(tableMonths.reduce((s, m) => s + m.cappedProcs, 0) / (adjustAssumptionsForYear(tableYear, assumptions).maxCapacityPerMonth * 12))}</td>
                 </tr>
               </tbody>
             </table>
