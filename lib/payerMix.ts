@@ -1,4 +1,7 @@
-export type MarketSlug = "forney" | "new-braunfels";
+// AUDIT 2026-04-24 S-10 resolved: keys now match Market type in lib/types.ts
+// (newBraunfels, forney). Prior kebab-case key "new-braunfels" would cause
+// undefined lookups when consumers pass a.market directly.
+export type MarketSlug = "forney" | "newBraunfels";
 
 export const payerMixByMarket: Record<
   MarketSlug,
@@ -15,15 +18,15 @@ export const payerMixByMarket: Record<
     govtShare: 0.15,        // SC!B146
     commercialShare: 0.85,  // SC!C146
     commercialSplit: {
-      bcbs: 0.30,           // SC!B154 — was 0.25, corrected to 0.30
-      aetnaUhccigna: 0.70,  // SC!B155 — was 0.75, corrected to 0.70
+      bcbs: 0.30,           // SC!B154
+      aetnaUhccigna: 0.70,  // SC!B155
     },
   },
-  "new-braunfels": {
+  newBraunfels: {
     govtShare: 0.25,        // SC!B145
     commercialShare: 0.75,  // SC!C145
     commercialSplit: {
-      bcbs: 0.30,           // SC!B154 — consistent with Forney (same sub-payer breakdown)
+      bcbs: 0.30,           // SC!B154
       aetnaUhccigna: 0.70,  // SC!B155
     },
   },

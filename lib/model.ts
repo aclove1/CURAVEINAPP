@@ -39,18 +39,30 @@ export function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-/* ── Credentialing ramp — SC!D163:D174 (Base/Conservative scenario) ────────
-   Month:          1     2     3     4     5     6–12
-   Commercial %: 0.40  0.53  0.67  0.80  0.85   0.85 (= market steady-state)
-   Source: Scenario Controls rows 163-174, active scenario D column          */
-const CRED_RAMP_COMM = [0.40, 0.53, 0.67, 0.80, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85]
+/* ── Credentialing ramp — SC!D163:D174 ─────────────────────────────────────
+   Linear ramp from RAMP_START (0.40) at M1 to the scenario's steady-state
+   commercial share at RAMP_MONTHS (5), then hold. Steady-state is derived
+   from effectiveCommercialShare(a) so the monthly blended rate reconciles
+   with calcOverallBlendedRate at the operator-selected scenario:
+     Conservative 0.65 / Base 0.75 / Aggressive 0.85.
+   AUDIT 2026-04-23 C-3 resolved: endpoint was hardcoded 0.85 (Forney mix)
+   for all scenarios, which made Base/Conservative monthly revenue overstate
+   commercial share by 10–20 bps and breakeven procs understate.
+   AUDIT 2026-04-25 C-12 resolved: ramp now short-circuits to steady-state
+   for year >= 2. Previously M1–M4 of Y2 and Y3 re-ran the ramp from 0.40
+   even though credentialing is a one-time event, understating Y2/Y3 revenue
+   by ~$224K combined (Base scenario).                                       */
+export const RAMP_START = 0.40
+export const RAMP_MONTHS = 5
 
-function getCredentialingMix(month: number, a: Assumptions): { govMix: number; commMix: number } {
-  const marketMix = MARKET_PAYER_MIX[a.market] ?? MARKET_PAYER_MIX.forney
-  const commPct = month >= 1 && month <= 12
-    ? CRED_RAMP_COMM[month - 1]
-    : marketMix.commercial
-  return { govMix: 1 - commPct, commMix: commPct }
+function getCredentialingMix(month: number, a: Assumptions, year: 1 | 2 | 3 = 1): { govMix: number; commMix: number } {
+  const steady = effectiveCommercialShare(a)
+  if (year >= 2) return { govMix: 1 - steady, commMix: steady }
+  let commMix: number
+  if (month <= 1) commMix = RAMP_START
+  else if (month >= RAMP_MONTHS) commMix = steady
+  else commMix = RAMP_START + ((steady - RAMP_START) * (month - 1)) / (RAMP_MONTHS - 1)
+  return { govMix: 1 - commMix, commMix }
 }
 
 /* ── FIX 7 — Varithena toggle: effective procedure mix ────── */
@@ -219,11 +231,11 @@ export function calcOverallBlendedRate(a: Assumptions): number {
 
 /* ── FIX 2 — Month-specific blended rate with credentialing ── */
 
-function calcMonthBlendedRate(month: number, a: Assumptions): number {
+function calcMonthBlendedRate(month: number, a: Assumptions, year: 1 | 2 | 3 = 1): number {
   const medicareBase = calcWeightedMedicareBase()
   const commMultiplier = blendedCommercialMultiplier(a)
-  const { govMix, commMix } = getCredentialingMix(month, a)
-  // v12 HARDENING: credentialing mix still ramps M1-M6; after that, targeted share takes over.
+  const { govMix, commMix } = getCredentialingMix(month, a, year)
+  // v12 HARDENING: credentialing mix ramps Y1 M1-M5; Y2+ uses steady-state targeted share.
   // Apply net realization factor uniformly.
   const gross = medicareBase * (govMix + commMix * commMultiplier)
   return Math.round(gross * netRealizationMultiplier(a))
@@ -231,14 +243,14 @@ function calcMonthBlendedRate(month: number, a: Assumptions): number {
 
 /* ── Revenue ──────────────────────────────────────────────── */
 
-export function calcRevenueMonth(month: number, a: Assumptions): RevenueMonth {
+export function calcRevenueMonth(month: number, a: Assumptions, year: 1 | 2 | 3 = 1): RevenueMonth {
   const funnel = calcFunnelMonth(month, a)
   const procs = funnel.cappedProcs
-  const blendedRate = calcMonthBlendedRate(month, a)
-  const { govMix, commMix } = getCredentialingMix(month, a)
+  const blendedRate = calcMonthBlendedRate(month, a, year)
+  const { govMix, commMix } = getCredentialingMix(month, a, year)
   const medicareRate = sv(a.medicareRate, a.scenario)
   const commMultiplier = blendedCommercialMultiplier(a)
-  const commercialRate = Math.round(medicareRate * commMultiplier)
+  const realization = netRealizationMultiplier(a)
   const procRevenue = procs * blendedRate
   // v12 hardening Path B: US billing as separate revenue line per treated patient.
   // Was excluded from FEE_SCHEDULE per Phase C. usRevenuePerPatient covers the
@@ -252,9 +264,22 @@ export function calcRevenueMonth(month: number, a: Assumptions): RevenueMonth {
   const grossRevenue = procRevenue + usRevenue
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
   const netRevenue = grossRevenue + managementFee
-  const medicareRevenue = Math.round(procs * govMix * medicareRate)
-  const commercialRevenue = Math.round(procs * commMix * commercialRate)
-  return { month, blendedRate, grossRevenue, managementFee, netRevenue, medicareRevenue, commercialRevenue, procs }
+  // AUDIT 2026-04-26 C-12: payer split is now derived from procRevenue with
+  // commercial as the residual, so medicareRevenue + commercialRevenue +
+  // usRevenue == grossRevenue exactly (no rounding gap). Previously the
+  // split omitted realization while blendedRate applied it, so the /revenue
+  // Monthly Detail table's "Medicare Rev + Commercial Rev" diverged from
+  // "Gross Revenue" by ~6%. Investor diligence-fail. Direct three-way round
+  // (med, comm, us) introduces $20–$56/month rounding noise; computing
+  // commercial as procRevenue − medicareRevenue absorbs that residual.
+  const denom = govMix + commMix * commMultiplier
+  const medicareShare = denom > 0 ? govMix / denom : 0
+  const medicareRevenue = Math.round(procRevenue * medicareShare)
+  const commercialRevenue = procRevenue - medicareRevenue
+  // Reference the realization/medicareRate inputs so future readers see the
+  // numerator semantics; values themselves flow through procRevenue/blendedRate.
+  void realization; void medicareRate
+  return { month, blendedRate, grossRevenue, managementFee, netRevenue, medicareRevenue, commercialRevenue, usRevenue, procs }
 }
 
 /* ── COGS ─────────────────────────────────────────────────── */
@@ -296,22 +321,22 @@ export function calcPersonnelCost(a: Assumptions): number {
   return Math.round(baseSalaries * (1 + a.payrollTaxRate + a.benefitsRate) / 12)
 }
 
-export function calcOpexMonth(month: number, a: Assumptions): OpexMonth {
+export function calcOpexMonth(month: number, a: Assumptions, year: 1 | 2 | 3 = 1): OpexMonth {
   const idx = month - 1
   const marketing = svArr(a.marketingSpend, a.scenario)[idx] ?? 0
   const personnelTotal = calcPersonnelCost(a)
-  const rev = calcRevenueMonth(month, a)
-  const billingCost = Math.round(a.billing + rev.grossRevenue * 0.02)
+  const rev = calcRevenueMonth(month, a, year)
+  const billingCost = Math.round(a.billing + rev.grossRevenue * a.billingPctOfRevenue)
   const totalOpex = personnelTotal + marketing + a.rent + a.malpractice + a.emr + billingCost
   return { month, personnelTotal, marketing, rent: a.rent, malpractice: a.malpractice, emr: a.emr, billing: billingCost, totalOpex }
 }
 
 /* ── Monthly P&L ──────────────────────────────────────────── */
 
-export function calcPLMonth(month: number, a: Assumptions): PLMonth {
-  const rev = calcRevenueMonth(month, a)
+export function calcPLMonth(month: number, a: Assumptions, year: 1 | 2 | 3 = 1): PLMonth {
+  const rev = calcRevenueMonth(month, a, year)
   const cogs = calcCOGSMonth(month, a)
-  const opex = calcOpexMonth(month, a)
+  const opex = calcOpexMonth(month, a, year)
   const grossProfit = rev.netRevenue - cogs.totalCOGS
   const grossMargin = rev.netRevenue > 0 ? grossProfit / rev.netRevenue : 0
   const ebitda = grossProfit - opex.totalOpex
@@ -362,6 +387,19 @@ function boostScenarioValues(
   }
 }
 
+/** AUDIT 2026-04-23 C-4: y2/y3 Volume Growth sliders previously did nothing.
+ *  Wire them to scale the marketing-spend array, so the operator-selected
+ *  growth rate drives lead volume year over year. Conversion boosts still
+ *  apply independently; combined effect is multiplicative.                  */
+function scaleMarketingSpend(base: Assumptions['marketingSpend'], factor: number): Assumptions['marketingSpend'] {
+  const scale = (arr: number[]) => arr.map(v => Math.round(v * factor))
+  return {
+    conservative: scale(base.conservative),
+    base:         scale(base.base),
+    aggressive:   scale(base.aggressive),
+  }
+}
+
 export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assumptions {
   // v12 HARDENING: bake year-specific effective capacity into maxCapacityPerMonth.
   // Previously a.maxCapacityPerMonth was a flat 146 across all years; now it's
@@ -370,8 +408,11 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
     ? { ...a, maxCapacityPerMonth: Math.round(effectiveMonthlyCapacity(a, year)) }
     : a
   if (year === 1) return withCapacity
+  const sc = a.scenario
+  const y2Growth = sv(a.y2VolumeGrowth, sc)
   const y2 = {
     ...withCapacity,
+    marketingSpend: scaleMarketingSpend(a.marketingSpend, 1 + y2Growth),
     contactRate: boostScenarioValues(a.contactRate, Y2_IMPROVEMENT, CONVERSION_CAPS.contactRate),
     bookingRate: boostScenarioValues(a.bookingRate, Y2_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
     showRate: boostScenarioValues(a.showRate, Y2_IMPROVEMENT, CONVERSION_CAPS.showRate),
@@ -379,8 +420,10 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
     pathwayCompletion: boostScenarioValues(a.pathwayCompletion, Y2_IMPROVEMENT, CONVERSION_CAPS.pathwayCompletion),
   }
   if (year === 2) return y2
+  const y3Growth = sv(a.y3VolumeGrowth, sc)
   return {
     ...y2,
+    marketingSpend: scaleMarketingSpend(y2.marketingSpend, 1 + y3Growth),
     contactRate: boostScenarioValues(y2.contactRate, Y3_IMPROVEMENT, CONVERSION_CAPS.contactRate),
     bookingRate: boostScenarioValues(y2.bookingRate, Y3_IMPROVEMENT, CONVERSION_CAPS.bookingRate),
     showRate: boostScenarioValues(y2.showRate, Y3_IMPROVEMENT, CONVERSION_CAPS.showRate),
@@ -400,18 +443,24 @@ export function calcAnnualPL(year: 1 | 2 | 3, a: Assumptions): AnnualPL {
 
   let totalProcs = 0
   let grossRevenue = 0
+  let managementFee = 0
   let totalCOGS = 0
   let totalOpex = 0
 
   for (let m = 1; m <= 12; m++) {
-    const pl = calcPLMonth(m, adj)
+    // AUDIT 2026-04-25 C-12: thread `year` so credentialing ramp short-circuits to
+    //   steady-state for Y2/Y3 (was re-running M1–M4 ramp every year).
+    const pl = calcPLMonth(m, adj, year)
     totalProcs += pl.procs
     grossRevenue += pl.grossRevenue
+    managementFee += pl.managementFee
     totalCOGS += pl.totalCOGS
     totalOpex += pl.totalOpex
   }
 
-  const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
+  // AUDIT 2026-04-25 O-10: managementFee was re-derived from sum-of-grossRevenue then
+  //   rounded once, diverging from sum-of-monthly-mgmtFees by 0–11 dollars. Now
+  //   aggregated symmetrically with totalCOGS/totalOpex from already-rounded monthlies.
   const netRevenue = grossRevenue + managementFee
   const grossProfit = netRevenue - totalCOGS
   const grossMargin = netRevenue > 0 ? grossProfit / netRevenue : 0
@@ -430,10 +479,15 @@ export function calcBreakeven(a: Assumptions): { monthlyBreakevenProcs: number; 
   const contributionMarginRate = blendedRate * (1 - a.managementFeeRate) - weightedCogs
   const monthlyBreakevenProcs = contributionMarginRate > 0 ? Math.ceil(safeDivide(fixedMonthly, contributionMarginRate)) : 9999
 
+  // AUDIT 2026-04-26 C-11: Y1 month loop now iterates against Y1-adjusted
+  // assumptions so cumulative EBITDA reflects the same effective capacity
+  // (Base 86/mo) as calcAnnualPL. Previously this loop used raw a (cap=146),
+  // overstating Y1 cumulative profit and pulling breakevenMonth forward.
+  const adjY1 = adjustAssumptionsForYear(1, a)
   let breakevenMonth: number | null = null
   let cumulativeProfit = 0
   for (let m = 1; m <= 12; m++) {
-    const pl = calcPLMonth(m, a)
+    const pl = calcPLMonth(m, adjY1, 1)
     cumulativeProfit += pl.ebitda
     if (cumulativeProfit > 0 && breakevenMonth === null) {
       breakevenMonth = m
@@ -444,7 +498,7 @@ export function calcBreakeven(a: Assumptions): { monthlyBreakevenProcs: number; 
       const baseMonth = ((m - 1) % 12) + 1
       const yr = m <= 12 ? 1 : m <= 24 ? 2 : 3
       const adj = adjustAssumptionsForYear(yr as 1 | 2 | 3, a)
-      const pl = calcPLMonth(baseMonth, adj)
+      const pl = calcPLMonth(baseMonth, adj, yr as 1 | 2 | 3)
       cumulativeProfit += pl.ebitda
       if (cumulativeProfit > 0) { breakevenMonth = m; break }
     }
@@ -456,6 +510,17 @@ export function calcBreakeven(a: Assumptions): { monthlyBreakevenProcs: number; 
 /* ── Key Metrics ──────────────────────────────────────────── */
 
 export function calcKeyMetrics(a: Assumptions): KeyMetrics {
+  // AUDIT 2026-04-26 C-11: iterate against Y1-adjusted assumptions so KPI cards
+  // on /scenario reconcile with calcAnnualPL(1) and the rest of the app.
+  // Previously this function iterated raw `a` (cap=146) while every other
+  // page and the dashboard iterated adjY1 (Base cap=86), producing:
+  //   - avgMonthlyProcs Base 84.83 vs actual 65.92 (29% overstatement)
+  //   - revenuePerProc, cogsPerProc, monthsAtCapacity, stabilizedMonthlyEbitda
+  //     all computed against the raw-iteration totals
+  //   - y1TotalProcs (from calcAnnualPL) ≠ totalProcs (raw) on the same metrics
+  //     object, so consumers got an internally inconsistent record.
+  const adjY1 = adjustAssumptionsForYear(1, a)
+
   let totalProcs = 0
   let totalGrossRevenue = 0
   let totalCOGS = 0
@@ -465,22 +530,22 @@ export function calcKeyMetrics(a: Assumptions): KeyMetrics {
   const monthlyEbitdas: number[] = []
 
   for (let m = 1; m <= 12; m++) {
-    const pl = calcPLMonth(m, a)
-    const funnel = calcFunnelMonth(m, a)
+    const pl = calcPLMonth(m, adjY1, 1)
+    const funnel = calcFunnelMonth(m, adjY1)
     totalProcs += pl.procs
     totalGrossRevenue += pl.grossRevenue
     totalCOGS += pl.totalCOGS
     totalMarketing += funnel.marketingSpend
     totalTreated += funnel.treated
     monthlyEbitdas.push(pl.ebitda)
-    if (funnel.cappedProcs >= a.maxCapacityPerMonth) monthsAtCapacity++
+    if (funnel.cappedProcs >= adjY1.maxCapacityPerMonth) monthsAtCapacity++
   }
 
   const avgMonthlyProcs = totalProcs / 12
   const revenuePerProc = totalProcs > 0 ? totalGrossRevenue / totalProcs : 0
   const cogsPerProc = totalProcs > 0 ? totalCOGS / totalProcs : 0
   const stabilizedMonthlyEbitda = monthlyEbitdas[11] ?? 0
-  const procsPerPatient = effectiveProcsPerPatient(a)  // v12: derived from pathway economics
+  const procsPerPatient = effectiveProcsPerPatient(adjY1)  // v12: derived from pathway economics
   const totalPatients = procsPerPatient > 0 ? totalProcs / procsPerPatient : 0
   const revenuePerPatient = totalPatients > 0 ? totalGrossRevenue / totalPatients : 0
   const costPerAcquisition = totalTreated > 0 ? totalMarketing / totalTreated : 0
@@ -584,14 +649,8 @@ export function validateFinancialModel(params: {
   })
 }
 
-/* ── All months helper ────────────────────────────────────── */
-
-export function calcAllMonths(a: Assumptions) {
-  return Array.from({ length: 12 }, (_, i) => i + 1).map(m => ({
-    funnel: calcFunnelMonth(m, a),
-    revenue: calcRevenueMonth(m, a),
-    cogs: calcCOGSMonth(m, a),
-    opex: calcOpexMonth(m, a),
-    pl: calcPLMonth(m, a),
-  }))
-}
+// AUDIT 2026-04-26 S-15: removed dead `calcAllMonths` helper. It iterated raw
+// `a` (no Y1-adjustment, no `year` threading), so any future caller would have
+// hit the same C-8/C-11 bug. No live importers — confirmed via grep on
+// 2026-04-26. Deleted rather than tombstoned because it's not exported by name
+// in any committed page or test.

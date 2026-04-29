@@ -256,6 +256,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   malpractice: 1200,
   emr: 800,
   billing: 1500,
+  billingPctOfRevenue: 0.02,  // AUDIT 2026-04-23 S-3 — surfaced from magic-number in calcOpexMonth
   managementFeeRate: 0.08,
   // ISOLATED DOWNSIDE: Conservative = Base for Y2/Y3 growth (not a downside lever).
   y2VolumeGrowth: { conservative: 0.39, base: 0.39, aggressive: 0.55 },
