@@ -11,7 +11,10 @@ import type {
   AnnualPL,
   KeyMetrics,
 } from './types'
-import { MARKET_PAYER_MIX, V12_HARDENING_ENABLED, calcNetCapacity } from './defaults'
+// MARKET_PAYER_MIX import removed by audit-2026-04-26 (no longer referenced
+// inside this module after v10 retirement). Keeping V12_HARDENING_ENABLED
+// + calcNetCapacity which are used by hardening helpers below.
+import { V12_HARDENING_ENABLED, calcNetCapacity } from './defaults'
 
 function sv(obj: { conservative: number; base: number; aggressive: number }, scenario: string): number {
   return obj[scenario as keyof typeof obj]
