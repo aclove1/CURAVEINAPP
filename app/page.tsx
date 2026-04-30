@@ -203,23 +203,42 @@ export default function DashboardPage() {
           >
             CuraVein&trade; Flagship Proforma
           </a>
+        </div>
 
-          {/* v12 Scenario Selector — 3 scenarios, single source of truth */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Scenario:</span>
-            {WIDGET_SCENARIOS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setScenario(key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  widgetScenario === key
-                    ? 'bg-[#5faaa6] text-white'
-                    : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {/* Scenario Selector — prominent master control. Drives every number on the page. */}
+        <div className="bg-gradient-to-r from-[#5faaa6]/10 via-gray-900 to-gray-900 border-2 border-[#5faaa6]/30 rounded-xl p-5">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-base font-bold text-white tracking-tight">
+              Scenario Selector
+              <span className="ml-2 text-xs font-normal text-[#5faaa6]">← click to switch</span>
+            </h2>
+            <span className="text-[11px] text-gray-400 italic">
+              Drives all KPIs, charts, P&amp;L, and revenue numbers below.
+            </span>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {WIDGET_SCENARIOS.map(({ key, label, sub }) => {
+              const active = widgetScenario === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setScenario(key)}
+                  className={`group cursor-pointer text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                    active
+                      ? 'bg-[#5faaa6] border-[#5faaa6] text-white shadow-lg shadow-[#5faaa6]/20 ring-2 ring-[#5faaa6]/40'
+                      : 'bg-gray-950/60 border-gray-700 text-gray-300 hover:border-[#5faaa6]/60 hover:bg-gray-900 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-white' : 'bg-gray-600 group-hover:bg-[#5faaa6]'}`} />
+                    <span className="text-sm font-semibold">{label}</span>
+                  </div>
+                  <div className={`text-[10px] mt-1 leading-tight ${active ? 'text-white/80' : 'text-gray-500 group-hover:text-gray-400'}`}>
+                    {sub}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 
