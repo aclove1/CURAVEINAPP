@@ -143,7 +143,7 @@ export default function DashboardPage() {
     { key: 'conservative', label: 'Downside',  sub: '65/35 mix · realization 83% · reimbursement pressure' },
     { key: 'base',         label: 'Base',      sub: '75/25 New Braunfels market · realization 94%' },
     { key: 'aggressive',   label: 'Upside',    sub: '85/15 via DTC under-65 targeted acquisition' },
-    { key: 'hybridWound',  label: 'Hybrid',    sub: 'Wound-care center referral base · M1 starts at slider %' },
+    { key: 'hybridWound',  label: 'Hybrid Wound Care Referral Base', sub: 'Vein clinic embedded in wound-care center · referrals fill Year 1 capacity from Month 1' },
   ]
 
   const y1Rev = dash.y1.grossRevenue
@@ -342,13 +342,17 @@ export default function DashboardPage() {
               ))}
             </div>
             <p className="mt-2 text-[10px] text-gray-500 italic">
-              Year 3 stabilized Base case output from the v12 model. Margins shown are modeled
-              targets, not guarantees. Downside = isolated reimbursement pressure
-              (net realization 83% + 65% commercial mix). Upside = 85% commercial mix via
-              DTC under-65 targeted acquisition (symptom-based funnel skews younger, self-referral
-              bias, procedure-eligible population differs from general demographic). Single-engine
-              compute from <span className="font-mono">lib/model.ts::calcAnnualPL</span>; KPI cards
-              above also source from the same engine (v10 shadow retired per AUDIT 2026-04-23 C-1).
+              Year 3 reflects stabilized operations; Year 1 reflects the credentialing ramp.
+              Three core scenarios isolate single-factor sensitivities — <span className="text-gray-400">Downside</span>{' '}
+              models reimbursement pressure (net realization 83%, payer mix drift to 65% commercial);{' '}
+              <span className="text-gray-400">Base</span> reflects the New Braunfels demographic
+              baseline (75/25 mix, 94% realization);{' '}
+              <span className="text-gray-400">Upside</span> models DTC under-65 commercial targeting
+              at 85/15 mix.{' '}
+              <span className="text-gray-400">Hybrid Wound Care Referral Base</span> models a vein
+              clinic embedded inside a wound-care center where internal referrals fill Year 1
+              capacity from Month 1 (slider-controlled), ramping to full capacity by Year 2.
+              Margins are modeled targets, not guarantees.
             </p>
           </div>
         </div>
