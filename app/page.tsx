@@ -138,11 +138,12 @@ export default function DashboardPage() {
   const pl3 = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
   const widgetScenario: Scenario = assumptions.scenario
 
-  // 3-scenario toggle for dashboard (replaces legacy 2-button v10 selector).
+  // 4-scenario toggle for dashboard.
   const WIDGET_SCENARIOS: { key: Scenario; label: string; sub: string }[] = [
     { key: 'conservative', label: 'Downside',  sub: '65/35 mix · realization 83% · reimbursement pressure' },
     { key: 'base',         label: 'Base',      sub: '75/25 New Braunfels market · realization 94%' },
     { key: 'aggressive',   label: 'Upside',    sub: '85/15 via DTC under-65 targeted acquisition' },
+    { key: 'hybridWound',  label: 'Hybrid Wound Care Referral Base', sub: 'Vein clinic embedded in wound-care center · referrals fill Year 1 capacity from Month 1' },
   ]
 
   const y1Rev = dash.y1.grossRevenue
@@ -202,23 +203,42 @@ export default function DashboardPage() {
           >
             CuraVein&trade; Flagship Proforma
           </a>
+        </div>
 
-          {/* v12 Scenario Selector — 3 scenarios, single source of truth */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Scenario:</span>
-            {WIDGET_SCENARIOS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setScenario(key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  widgetScenario === key
-                    ? 'bg-[#5faaa6] text-white'
-                    : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+        {/* Scenario Selector — prominent master control. Drives every number on the page. */}
+        <div className="bg-gradient-to-r from-[#5faaa6]/10 via-gray-900 to-gray-900 border-2 border-[#5faaa6]/30 rounded-xl p-5">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="text-base font-bold text-white tracking-tight">
+              Scenario Selector
+              <span className="ml-2 text-xs font-normal text-[#5faaa6]">← click to switch</span>
+            </h2>
+            <span className="text-[11px] text-gray-400 italic">
+              Drives all KPIs, charts, P&amp;L, and revenue numbers below.
+            </span>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {WIDGET_SCENARIOS.map(({ key, label, sub }) => {
+              const active = widgetScenario === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setScenario(key)}
+                  className={`group cursor-pointer text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                    active
+                      ? 'bg-[#5faaa6] border-[#5faaa6] text-white shadow-lg shadow-[#5faaa6]/20 ring-2 ring-[#5faaa6]/40'
+                      : 'bg-gray-950/60 border-gray-700 text-gray-300 hover:border-[#5faaa6]/60 hover:bg-gray-900 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-white' : 'bg-gray-600 group-hover:bg-[#5faaa6]'}`} />
+                    <span className="text-sm font-semibold">{label}</span>
+                  </div>
+                  <div className={`text-[10px] mt-1 leading-tight ${active ? 'text-white/80' : 'text-gray-500 group-hover:text-gray-400'}`}>
+                    {sub}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -226,7 +246,7 @@ export default function DashboardPage() {
           <h2 className="text-sm font-semibold text-[#5faaa6] mb-4">Conversion Rate Controls</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
             {SLIDERS.map(({ label, field, min, max, step }) => {
-              const vals = assumptions[field] as { conservative: number; base: number; aggressive: number }
+              const vals = assumptions[field] as { conservative: number; base: number; aggressive: number; hybridWound: number }
               const current = vals[assumptions.scenario]
               const tip = SLIDER_TOOLTIPS[field]
               return (
@@ -280,6 +300,36 @@ export default function DashboardPage() {
               <span>{WIDGET_SCENARIOS.find(s => s.key === widgetScenario)?.sub}</span>
             </div>
 
+            {/* Hybrid Wound: starting procedure capacity slider (Y1 M1 utilization). */}
+            {widgetScenario === 'hybridWound' && (
+              <div className="mb-4 p-3 rounded-lg border border-gray-800 bg-gray-950/40">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-xs text-gray-300 font-medium">
+                    Starting Procedure Capacity
+                  </span>
+                  <span className="text-xs font-mono text-[#5faaa6]">
+                    {Math.round(assumptions.startingProcedureCapacity * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0.10}
+                  max={1.00}
+                  step={0.01}
+                  value={assumptions.startingProcedureCapacity}
+                  onChange={(e) => updateAssumption('startingProcedureCapacity', parseFloat(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-gray-700 accent-[#5faaa6]"
+                />
+                <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                  <span>10%</span>
+                  <span>100%</span>
+                </div>
+                <p className="text-[10px] text-gray-500 italic mt-1.5">
+                  Procedure capacity already filled in month 1 from wound care center referrals. Subsequent months ramp the remaining gap to 100% over Year 1.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-3">
               {([
                 { label: 'Year 1', sub: 'ramp', pl: pl1 },
@@ -311,13 +361,17 @@ export default function DashboardPage() {
               ))}
             </div>
             <p className="mt-2 text-[10px] text-gray-500 italic">
-              Year 3 stabilized Base case output from the v12 model. Margins shown are modeled
-              targets, not guarantees. Downside = isolated reimbursement pressure
-              (net realization 83% + 65% commercial mix). Upside = 85% commercial mix via
-              DTC under-65 targeted acquisition (symptom-based funnel skews younger, self-referral
-              bias, procedure-eligible population differs from general demographic). Single-engine
-              compute from <span className="font-mono">lib/model.ts::calcAnnualPL</span>; KPI cards
-              above also source from the same engine (v10 shadow retired per AUDIT 2026-04-23 C-1).
+              Year 3 reflects stabilized operations; Year 1 reflects the credentialing ramp.
+              Three core scenarios isolate single-factor sensitivities — <span className="text-gray-400">Downside</span>{' '}
+              models reimbursement pressure (net realization 83%, payer mix drift to 65% commercial);{' '}
+              <span className="text-gray-400">Base</span> reflects the New Braunfels demographic
+              baseline (75/25 mix, 94% realization);{' '}
+              <span className="text-gray-400">Upside</span> models DTC under-65 commercial targeting
+              at 85/15 mix.{' '}
+              <span className="text-gray-400">Hybrid Wound Care Referral Base</span> models a vein
+              clinic embedded inside a wound-care center where internal referrals fill Year 1
+              capacity from Month 1 (slider-controlled), ramping to full capacity by Year 2.
+              Margins are modeled targets, not guarantees.
             </p>
           </div>
         </div>
