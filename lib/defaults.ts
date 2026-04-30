@@ -132,9 +132,13 @@ export const UTILIZATION_RAMP: ScenarioValues<UtilizationRamp> = {
   conservative: { y1: 0.70, y2: 0.85, y3: 0.95 },
   base:         { y1: 0.70, y2: 0.85, y3: 0.95 },
   aggressive:   { y1: 0.75, y2: 0.90, y3: 1.00 },
-  // Hybrid Wound: Y1 utilization is overridden per-month by _monthlyMaxCapacity
-  // (computed in adjustAssumptionsForYear from startingProcedureCapacity).
-  // Y2/Y3 = 100% — embedded referral base persists, capacity structurally filled.
+  // Hybrid Wound: Y1 utilization = 100% (no ramp). All scenarios share the same
+  // PHYSICAL capacity (CAPACITY_MODEL — 18 days × 8 procs × leakage = 123/mo).
+  // Base/Down/Up have a Y1 utilization ramp because DTC PATIENTS build up over
+  // time (demand-side ramp). Hybrid SKIPS this ramp because wound-care referrals
+  // provide patients from M1 — operations have full capacity available immediately.
+  // The slider (startingProcedureCapacity) modulates M1 starting utilization;
+  // _monthlyProcFloor ramps it from slider × 123 → 123 over Y1_RAMP_MONTHS.
   hybridWound:  { y1: 1.00, y2: 1.00, y3: 1.00 },
 }
 

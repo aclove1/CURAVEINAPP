@@ -430,7 +430,11 @@ export function adjustAssumptionsForYear(year: 1 | 2 | 3, a: Assumptions): Assum
 
   // Hybrid Wound Care Center: Y1 referral floor ramps from
   // startingProcedureCapacity × netCap → netCap over Y1_RAMP_MONTHS.
-  // Cap stays at netCap (UTILIZATION_RAMP.hybridWound.y1 = 1.0).
+  // All scenarios share the same physical netCap (~123). Base/Down/Up
+  // discount via Y1 utilization ramp (DTC patients build up); Hybrid does
+  // NOT ramp utilization (UTILIZATION_RAMP.hybridWound.y1 = 1.0) because
+  // referrals provide patients from M1 — full netCap is operationally
+  // available. Slider modulates M1 referral starting %.
   // Other scenarios: leave _monthlyProcFloor undefined.
   if (V12_HARDENING_ENABLED && a.scenario === 'hybridWound' && year === 1) {
     const capModel = a.capacityModel?.hybridWound
