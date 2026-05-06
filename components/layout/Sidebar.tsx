@@ -21,7 +21,7 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 min-h-screen bg-gray-950 flex flex-col border-r border-gray-800">
+    <aside className="w-64 min-h-[100dvh] bg-gray-950 flex flex-col border-r border-gray-800">
       <Link href="/" className="px-6 py-6 border-b border-gray-800 block hover:bg-gray-900/40 transition-colors">
         <div className="flex items-center gap-3">
           <Image
