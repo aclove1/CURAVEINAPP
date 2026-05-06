@@ -9,3 +9,6 @@ tsconfig.tsbuildinfo
 
 # Working scaffolds
 _v12_smoke.ts
+.DS_Store
+*.tsbuildinfo
+_*.ts
