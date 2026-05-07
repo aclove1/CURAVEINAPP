@@ -36,7 +36,7 @@ export function Sidebar() {
             <div className="text-white font-semibold text-base leading-none tracking-tight">
               CuraVein<span className="text-gray-400 text-[10px] ml-0.5 align-top">™</span>
             </div>
-            <div className="text-[11px] mt-1" style={{ color: '#A84D2E' }}>Love Your Legs</div>
+            <div className="text-[11px] mt-1" style={{ color: '#C26848' }}>Love Your Legs</div>
           </div>
         </div>
       </Link>

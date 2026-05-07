@@ -271,7 +271,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-gray-700 accent-[#5faaa6]"
                   />
-                  <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                  <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                     <span>{(min * 100).toFixed(0)}%</span>
                     <span>{(max * 100).toFixed(0)}%</span>
                   </div>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
                   onChange={(e) => updateAssumption('startingProcedureCapacity', parseFloat(e.target.value))}
                   className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-gray-700 accent-[#5faaa6]"
                 />
-                <div className="flex justify-between text-[10px] text-gray-600 mt-0.5">
+                <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                   <span>10%</span>
                   <span>100%</span>
                 </div>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
                 <div key={label} className="bg-gray-950/60 border border-gray-800 rounded-lg p-3">
                   <div className="flex items-baseline justify-between mb-1.5">
                     <span className="text-[10px] text-gray-400 uppercase tracking-wider">{label}</span>
-                    <span className="text-[9px] text-gray-600 italic">{sub}</span>
+                    <span className="text-[9px] text-gray-400 italic">{sub}</span>
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-[11px] text-gray-400">Gross Revenue</span>

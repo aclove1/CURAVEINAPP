@@ -56,7 +56,7 @@ function CitationsTable() {
                       View Source
                     </a>
                   ) : (
-                    <span className="text-gray-600 text-xs">Internal</span>
+                    <span className="text-gray-400 text-xs">Internal</span>
                   )}
                 </td>
               </tr>
