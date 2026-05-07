@@ -154,7 +154,7 @@ export default function CPTPage() {
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-400">
             <span className="text-blue-400 font-medium">Blue values</span> are editable. Click any count to modify. Counts represent 95-day billing cycles × 4 = annual volume. Revenue is adjusted for payer mix ({fmtPct(assumptions.medicareMix)} Medicare / {fmtPct(assumptions.commercialMix)} Commercial at {assumptions.commercialMultiplier.base}x multiplier).
           </p>
         </div>
@@ -169,17 +169,17 @@ export default function CPTPage() {
           </div>
           <div className="mt-2 grid grid-cols-3 gap-4 pt-3 border-t border-gray-800">
             <div className="text-center">
-              <div className="text-xs text-gray-500">Procedure CPTs</div>
+              <div className="text-xs text-gray-400">Procedure CPTs</div>
               <div className="text-lg font-semibold text-white mt-1">{fmtCurrency(totalProcRev)}</div>
               <div className="text-xs text-gray-400">{fmtPct(totalProcRev / totalRev)} of total</div>
             </div>
             <div className="text-center">
-              <div className="text-xs text-gray-500">E&M CPTs</div>
+              <div className="text-xs text-gray-400">E&M CPTs</div>
               <div className="text-lg font-semibold text-white mt-1">{fmtCurrency(totalEmRev)}</div>
               <div className="text-xs text-gray-400">{fmtPct(totalEmRev / totalRev)} of total</div>
             </div>
             <div className="text-center">
-              <div className="text-xs text-gray-500">Capacity</div>
+              <div className="text-xs text-gray-400">Capacity</div>
               <div className="text-lg font-semibold text-teal-400 mt-1">{capacity}%</div>
               <div className="text-xs text-gray-400">{capacity === '50' ? `${assumptions.maxCapacityPerMonth / 2} procs/mo` : `${assumptions.maxCapacityPerMonth} procs/mo`}</div>
             </div>

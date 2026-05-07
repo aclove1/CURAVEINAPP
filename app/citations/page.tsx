@@ -27,10 +27,10 @@ function CitationsTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-800 bg-gray-900/50">
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">Assumption</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">Model Value</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">Source / Rationale</th>
-              <th className="text-left px-4 py-3 text-xs text-gray-500 font-medium">Citation</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Assumption</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Model Value</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Source / Rationale</th>
+              <th className="text-left px-4 py-3 text-xs text-gray-400 font-medium">Citation</th>
             </tr>
           </thead>
           <tbody>
@@ -105,7 +105,7 @@ export default function CitationsPage() {
     <div>
       <TopBar title="Citations & Methodology" />
       <div className="p-6 space-y-6">
-        <Suspense fallback={<div className="text-gray-500 text-sm">Loading...</div>}>
+        <Suspense fallback={<div className="text-gray-400 text-sm">Loading...</div>}>
           <CitationsTable />
         </Suspense>
 

@@ -16,7 +16,7 @@ export function TooltipInfo({ text, href }: TooltipInfoProps) {
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
-      <span className="text-gray-500 hover:text-gray-300 cursor-help text-xs select-none">&#9432;</span>
+      <span className="text-gray-400 hover:text-gray-300 cursor-help text-xs select-none">&#9432;</span>
       {show && (
         <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 w-64 rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-xs text-gray-300 shadow-lg pointer-events-auto">
           <span>{text}</span>

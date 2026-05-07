@@ -131,7 +131,7 @@ export default function RevenuePage() {
                 Medicare + Commercial + US Revenue = Gross Revenue. Pre-fix the
                 first two omitted realization while gross applied it, leaving
                 a ~6% reconciliation gap in the totals row. */}
-            <p className="text-[11px] text-gray-500 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               Medicare + Commercial = procedure revenue (post-realization). US Revenue is the 93970/93971 ultrasound line per treated patient. Sum reconciles to Gross.
             </p>
           </div>

@@ -34,7 +34,7 @@ export function Sidebar() {
           />
           <div>
             <div className="text-white font-semibold text-base leading-none tracking-tight">
-              CuraVein<span className="text-gray-500 text-[10px] ml-0.5 align-top">™</span>
+              CuraVein<span className="text-gray-400 text-[10px] ml-0.5 align-top">™</span>
             </div>
             <div className="text-[11px] mt-1" style={{ color: '#A84D2E' }}>Love Your Legs</div>
           </div>
@@ -54,7 +54,7 @@ export function Sidebar() {
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
               }`}
             >
-              <Icon size={16} className={active ? 'text-teal-400' : 'text-gray-500'} />
+              <Icon size={16} className={active ? 'text-teal-400' : 'text-gray-400'} />
               {label}
             </Link>
           )
@@ -62,7 +62,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-6 py-4 border-t border-gray-800">
-        <div className="text-xs text-gray-500">v1.0 · PE Grade Model</div>
+        <div className="text-xs text-gray-400">v1.0 · PE Grade Model</div>
       </div>
     </aside>
   )

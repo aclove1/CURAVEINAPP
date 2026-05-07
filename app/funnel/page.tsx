@@ -51,7 +51,7 @@ function CitationIcon({ citationId }: { citationId: string }) {
           style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
         >
           <span className="font-mono text-[#5faaa6]">{citation.value}</span>
-          <span className="text-gray-500"> — </span>
+          <span className="text-gray-400"> — </span>
           <span className="font-normal">{citation.rationale}</span>
         </span>
       )}
@@ -142,26 +142,26 @@ export default function FunnelPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-300">
                 Lead Source Mix
-                <span className="ml-2 text-[10px] font-normal text-gray-500 uppercase tracking-wider">v12 · seeded</span>
+                <span className="ml-2 text-[10px] font-normal text-gray-400 uppercase tracking-wider">v12 · seeded</span>
               </h2>
               <div className="text-xs text-gray-400">
                 Composite contact rate (active scenario):{' '}
                 <span className="text-[#5faaa6] font-semibold">
                   {fmtPct(calcCompositeContactRate(assumptions.scenario))}
                 </span>
-                <span className="ml-2 text-gray-500">
+                <span className="ml-2 text-gray-400">
                   → effective procs/patient: <span className="text-gray-300">{effectiveProcsPerPatient(assumptions).toFixed(2)}</span>
                 </span>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1.5">
+            <p className="text-xs text-gray-400 mt-1.5">
               A single contact rate hides what actually drives revenue. Composite = Σ (volume share × per-source contact rate).
               Shifting volume from paid social → physician referral lifts the composite by 2–3 points and adds ~5–10% revenue.
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="bg-gray-950 text-gray-500 uppercase tracking-wider">
+              <thead className="bg-gray-950 text-gray-400 uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">Source</th>
                   <th className="px-3 py-2 text-right font-medium">Volume %</th>
@@ -181,7 +181,7 @@ export default function FunnelPage() {
                       <td className="px-3 py-2 text-right tabular-nums">{fmtPct(v)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtPct(c)}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-[#5faaa6]">{fmtPct(v * c)}</td>
-                      <td className="px-4 py-2 text-gray-500 italic">{s.note}</td>
+                      <td className="px-4 py-2 text-gray-400 italic">{s.note}</td>
                     </tr>
                   )
                 })}
@@ -196,7 +196,7 @@ export default function FunnelPage() {
                   <td className="px-3 py-2 text-right tabular-nums text-[#5faaa6]">
                     {fmtPct(calcCompositeContactRate(assumptions.scenario))}
                   </td>
-                  <td className="px-4 py-2 text-gray-500 italic">Σ across 5 sources — feeds funnel contact rate</td>
+                  <td className="px-4 py-2 text-gray-400 italic">Σ across 5 sources — feeds funnel contact rate</td>
                 </tr>
               </tbody>
             </table>
@@ -208,33 +208,33 @@ export default function FunnelPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-300">
               Pathway Economics
-              <span className="ml-2 text-[10px] font-normal text-gray-500 uppercase tracking-wider">v12</span>
+              <span className="ml-2 text-[10px] font-normal text-gray-400 uppercase tracking-wider">v12</span>
             </h2>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-400">
               Treatment Conversion (Shows → ≥1 procedure) is the gate; pathway completion drives revenue per patient.
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Expected Pathway Procs</div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider">Expected Pathway Procs</div>
               <div className="text-xl font-semibold text-white mt-1">
                 {assumptions.expectedPathwayProcs[assumptions.scenario].toFixed(1)}
               </div>
-              <div className="text-[11px] text-gray-500 mt-1">Bilateral CVI plan: 2 ablations + sclero per leg</div>
+              <div className="text-[11px] text-gray-400 mt-1">Bilateral CVI plan: 2 ablations + sclero per leg</div>
             </div>
             <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Pathway Completion %</div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider">Pathway Completion %</div>
               <div className="text-xl font-semibold text-white mt-1">
                 {fmtPct(assumptions.pathwayCompletion[assumptions.scenario])}
               </div>
-              <div className="text-[11px] text-gray-500 mt-1">Drops to 65% w/ weak counseling; 95% w/ active rebook</div>
+              <div className="text-[11px] text-gray-400 mt-1">Drops to 65% w/ weak counseling; 95% w/ active rebook</div>
             </div>
             <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Effective Procs / Patient</div>
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider">Effective Procs / Patient</div>
               <div className="text-xl font-semibold text-[#5faaa6] mt-1">
                 {effectiveProcsPerPatient(assumptions).toFixed(2)}
               </div>
-              <div className="text-[11px] text-gray-500 mt-1">= Expected × Completion. Drives revenue/patient.</div>
+              <div className="text-[11px] text-gray-400 mt-1">= Expected × Completion. Drives revenue/patient.</div>
             </div>
           </div>
         </div>
@@ -306,7 +306,7 @@ export default function FunnelPage() {
                   onClick={() => setTableYear(y)}
                   className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                     tableYear === y
-                      ? 'bg-[#5faaa6] text-white'
+                      ? 'bg-[#5faaa6] text-gray-950 font-semibold'
                       : 'bg-gray-800 text-gray-400 hover:text-gray-200'
                   }`}
                 >

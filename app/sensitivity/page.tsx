@@ -43,13 +43,13 @@ function HeatmapTable({ title, subtitle, rowLabel, colLabel, rowValues, colValue
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-800">
         <h2 className="text-sm font-semibold text-gray-200">{title}</h2>
-        <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
       </div>
       <div className="overflow-x-auto p-4">
         <table className="text-xs">
           <thead>
             <tr>
-              <th className="text-left pr-3 pb-2 text-gray-500 font-medium" style={{ minWidth: 100 }}>
+              <th className="text-left pr-3 pb-2 text-gray-400 font-medium" style={{ minWidth: 100 }}>
                 {rowLabel} / {colLabel}
               </th>
               {colValues.map((c) => (
@@ -84,7 +84,7 @@ function HeatmapTable({ title, subtitle, rowLabel, colLabel, rowValues, colValue
           </tbody>
         </table>
         <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-800">
-          <span className="text-xs text-gray-500">Procedures/month:</span>
+          <span className="text-xs text-gray-400">Procedures/month:</span>
           {[
             { color: '#7f1d1d', label: '< 30' },
             { color: '#92400e', label: '30–50' },

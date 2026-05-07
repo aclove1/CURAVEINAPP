@@ -113,11 +113,11 @@ export default function CogsPage() {
                 <div key={i} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
                   <div>
                     <div className="text-sm text-gray-200">{row.label}</div>
-                    <div className="text-xs text-gray-500">{fmtPct(row.mix)} mix</div>
+                    <div className="text-xs text-gray-400">{fmtPct(row.mix)} mix</div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-semibold text-white">{fmtCurrency(row.cost, false)}</div>
-                    <div className="text-xs text-gray-500">per procedure</div>
+                    <div className="text-xs text-gray-400">per procedure</div>
                   </div>
                 </div>
               ))}

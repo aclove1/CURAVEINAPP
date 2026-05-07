@@ -36,6 +36,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        {/* Cloudflare Insights beacon — preconnect cuts ~30-50ms off the first request */}
+        <link rel="preconnect" href="https://static.cloudflareinsights.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://static.cloudflareinsights.com" />
+      </head>
       <body className="bg-gray-950 text-gray-100 min-h-[100dvh]">
         <div className="flex min-h-[100dvh]">
           <Sidebar />

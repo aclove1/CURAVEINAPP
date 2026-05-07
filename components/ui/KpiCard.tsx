@@ -18,7 +18,7 @@ export function KpiCard({ label, value, sub, highlight }: KpiCardProps) {
     )}>
       <div className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</div>
       <div className={cn('text-2xl font-bold', highlight ? 'text-teal-400' : 'text-white')}>{value}</div>
-      {sub && <div className="text-xs text-gray-500">{sub}</div>}
+      {sub && <div className="text-xs text-gray-400">{sub}</div>}
     </div>
   )
 }

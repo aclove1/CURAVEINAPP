@@ -22,7 +22,7 @@ export function TopBar({ title }: { title: string }) {
             key={value}
             onClick={() => setScenario(value)}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${
-              current === value ? color : 'text-gray-500 border-transparent hover:text-gray-300'
+              current === value ? color : 'text-gray-400 border-transparent hover:text-gray-300'
             }`}
           >
             {label}

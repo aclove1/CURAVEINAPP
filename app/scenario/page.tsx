@@ -137,14 +137,14 @@ function SectionTable({
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#5faaa6]">{title}</h3>
-        <button onClick={onReset} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Reset</button>
+        <button onClick={onReset} className="text-xs text-gray-400 hover:text-gray-300 transition-colors">Reset</button>
       </div>
       <table className="w-full">
         <thead>
           <tr className="border-b border-gray-800 bg-gray-900/50">
-            <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">Parameter</th>
+            <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Parameter</th>
             {SCEN_KEYS.map((sk) => (
-              <th key={sk} className="text-right px-4 py-2 text-xs text-gray-500 font-medium">{SCEN_LABELS[sk]}</th>
+              <th key={sk} className="text-right px-4 py-2 text-xs text-gray-400 font-medium">{SCEN_LABELS[sk]}</th>
             ))}
           </tr>
         </thead>
@@ -174,15 +174,15 @@ function PayerMixSection() {
         <h3 className="text-sm font-semibold text-[#5faaa6]">Payer Mix</h3>
         <button
           onClick={() => updateAssumption('payerMix', DEFAULT_ASSUMPTIONS.payerMix)}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
         >Reset</button>
       </div>
       <table className="w-full">
         <thead>
           <tr className="border-b border-gray-800 bg-gray-900/50">
-            <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">Payer</th>
-            <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">Weight</th>
-            <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium">Effective</th>
+            <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Payer</th>
+            <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Weight</th>
+            <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Effective</th>
           </tr>
         </thead>
         <tbody>
@@ -196,18 +196,18 @@ function PayerMixSection() {
                   onChange={(v) => handlePayerChange(pk, v)}
                 />
               </td>
-              <td className="px-4 py-2.5 text-right text-xs text-gray-500">{fmtPct(normalized[pk])}</td>
+              <td className="px-4 py-2.5 text-right text-xs text-gray-400">{fmtPct(normalized[pk])}</td>
             </tr>
           ))}
           <tr className="bg-gray-800/30">
             <td className="px-4 py-2.5 text-sm font-semibold text-gray-200">Payer total</td>
             <td className="px-4 py-2.5 text-right text-sm font-semibold text-gray-200">{(sum * 100).toFixed(1)}%</td>
-            <td className="px-4 py-2.5 text-right text-xs text-gray-500">100.0%</td>
+            <td className="px-4 py-2.5 text-right text-xs text-gray-400">100.0%</td>
           </tr>
         </tbody>
       </table>
       <div className="px-4 py-2 border-t border-gray-800">
-        <span className="text-xs text-gray-500 italic">Source: CuraVein Referral Tracker</span>
+        <span className="text-xs text-gray-400 italic">Source: CuraVein Referral Tracker</span>
       </div>
     </div>
   )
@@ -229,16 +229,16 @@ function VarithenaRatesSection() {
             updateAssumption('varithenaRates36465', DEFAULT_ASSUMPTIONS.varithenaRates36465)
             updateAssumption('varithenaRates36466', DEFAULT_ASSUMPTIONS.varithenaRates36466)
           }}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
         >Reset</button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-800 bg-gray-900/50">
-              <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">CPT</th>
+              <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">CPT</th>
               {PAYER_KEYS.map((pk) => (
-                <th key={pk} className="text-right px-4 py-2 text-xs text-gray-500 font-medium">{PAYER_LABELS[pk]}</th>
+                <th key={pk} className="text-right px-4 py-2 text-xs text-gray-400 font-medium">{PAYER_LABELS[pk]}</th>
               ))}
             </tr>
           </thead>
@@ -331,7 +331,7 @@ export default function ScenarioPage() {
                   updateAssumption('commercialMix', mix.commercial)
                 }}
                 className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                  assumptions.market === m ? 'bg-[#5faaa6] text-white' : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                  assumptions.market === m ? 'bg-[#5faaa6] text-gray-950 font-semibold' : 'bg-gray-800 text-gray-400 hover:text-gray-200'
                 }`}
               >
                 {m === 'newBraunfels' ? 'New Braunfels' : 'Forney'}
@@ -345,7 +345,7 @@ export default function ScenarioPage() {
             <button
               onClick={() => updateAssumption('varithenaEnabled', !assumptions.varithenaEnabled)}
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                assumptions.varithenaEnabled ? 'bg-[#5faaa6] text-white' : 'bg-gray-800 text-gray-400'
+                assumptions.varithenaEnabled ? 'bg-[#5faaa6] text-gray-950 font-semibold' : 'bg-gray-800 text-gray-400'
               }`}
             >
               {assumptions.varithenaEnabled ? 'On' : 'Off'}
@@ -394,7 +394,7 @@ export default function ScenarioPage() {
             <SingleRow label="Medicare/Gov Mix" field="medicareMix" isPercent />
             <SingleRow label="Commercial Mix" field="commercialMix" isPercent />
             <SingleRow label="Management Fee Rate" field="managementFeeRate" isPercent />
-            <tr><td colSpan={4} className="px-4 py-2 text-xs text-gray-500 italic">Credentialing ramp applied: full commercial access Month 7+</td></tr>
+            <tr><td colSpan={4} className="px-4 py-2 text-xs text-gray-400 italic">Credentialing ramp applied: full commercial access Month 7+</td></tr>
           </SectionTable>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -414,13 +414,13 @@ export default function ScenarioPage() {
                 updateAssumption('postProcSupport', d.postProcSupport)
                 updateAssumption('venasealPtsPerKit', d.venasealPtsPerKit)
                 updateAssumption('varithenaDrugCost', d.varithenaDrugCost)
-              }} className="text-xs text-gray-500 hover:text-gray-300 transition-colors">Reset</button>
+              }} className="text-xs text-gray-400 hover:text-gray-300 transition-colors">Reset</button>
             </div>
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-800 bg-gray-900/50">
-                  <th className="text-left px-4 py-2 text-xs text-gray-500 font-medium">Parameter</th>
-                  <th className="text-right px-4 py-2 text-xs text-gray-500 font-medium" colSpan={3}>Value</th>
+                  <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Parameter</th>
+                  <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium" colSpan={3}>Value</th>
                 </tr>
               </thead>
               <tbody>
