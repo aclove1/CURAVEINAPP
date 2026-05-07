@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { BarChart, Bar, LineChart, Line, ReferenceLine, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { useModelStore } from '@/lib/store'
-import { fmtCurrency, fmtNumber, fmtDecimal, fmtPct, MONTH_LABELS } from '@/lib/formatters'
+import { fmtCurrency, fmtCurrencyCompact, fmtNumber, fmtDecimal, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { TooltipInfo } from '@/components/ui/TooltipInfo'
@@ -216,7 +216,7 @@ export default function DashboardPage() {
               Drives all KPIs, charts, P&amp;L, and revenue numbers below.
             </span>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {WIDGET_SCENARIOS.map(({ key, label, sub }) => {
               const active = widgetScenario === key
               return (
@@ -332,7 +332,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {([
                 { label: 'Year 1', sub: 'ramp', pl: pl1 },
                 { label: 'Year 2', sub: 'partial stabilization', pl: pl2 },
@@ -343,14 +343,18 @@ export default function DashboardPage() {
                     <span className="text-[10px] text-gray-400 uppercase tracking-wider">{label}</span>
                     <span className="text-[9px] text-gray-400 italic">{sub}</span>
                   </div>
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-[11px] text-gray-400">Gross Revenue</span>
-                    <span className="text-sm font-mono text-white tabular-nums">{fmtCurrency(pl.grossRevenue)}</span>
+                  <div className="flex justify-between items-baseline gap-2">
+                    <span className="text-[11px] text-gray-400 flex-shrink-0">Gross Revenue</span>
+                    <span className="text-sm font-mono text-white tabular-nums truncate">
+                      <span className="md:hidden">{fmtCurrencyCompact(pl.grossRevenue)}</span>
+                      <span className="hidden md:inline">{fmtCurrency(pl.grossRevenue)}</span>
+                    </span>
                   </div>
-                  <div className="flex justify-between items-baseline mt-1">
-                    <span className="text-[11px] text-gray-400">EBITDA</span>
-                    <span className={`text-sm font-mono tabular-nums ${pl.ebitda < 0 ? 'text-red-400' : 'text-[#5faaa6]'}`}>
-                      {fmtCurrency(pl.ebitda)}
+                  <div className="flex justify-between items-baseline gap-2 mt-1">
+                    <span className="text-[11px] text-gray-400 flex-shrink-0">EBITDA</span>
+                    <span className={`text-sm font-mono tabular-nums truncate ${pl.ebitda < 0 ? 'text-red-400' : 'text-[#5faaa6]'}`}>
+                      <span className="md:hidden">{fmtCurrencyCompact(pl.ebitda)}</span>
+                      <span className="hidden md:inline">{fmtCurrency(pl.ebitda)}</span>
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline mt-0.5">

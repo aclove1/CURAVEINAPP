@@ -167,7 +167,7 @@ export default function CPTPage() {
             <span className="text-base font-bold text-gray-100">Total Annual CPT Revenue ({capacity}% Capacity)</span>
             <span className="text-2xl font-bold text-emerald-400">{fmtCurrency(totalRev)}</span>
           </div>
-          <div className="mt-2 grid grid-cols-3 gap-4 pt-3 border-t border-gray-800">
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-gray-800">
             <div className="text-center">
               <div className="text-xs text-gray-400">Procedure CPTs</div>
               <div className="text-lg font-semibold text-white mt-1">{fmtCurrency(totalProcRev)}</div>

@@ -9,6 +9,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://curavein.app'),
   title: {
     default: 'CuraVein™ — Love Your Legs',
     template: '%s · CuraVein™',

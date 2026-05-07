@@ -5,6 +5,23 @@ export function fmtCurrency(value: number | null | undefined, showZeroDash = tru
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value)
 }
 
+/**
+ * Compact currency for narrow contexts (mobile cards, dense dashboards).
+ * Returns e.g. "$3.30M", "$1.45M", "$842K", "($1.20M)" for negatives.
+ */
+export function fmtCurrencyCompact(value: number | null | undefined, showZeroDash = true): string {
+  if (value === null || value === undefined) return '—'
+  if (showZeroDash && value === 0) return '—'
+  if (value < 0) return `(${fmtCurrencyCompact(-value, false)})`
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    minimumFractionDigits: value >= 1_000_000 ? 2 : value >= 1_000 ? 1 : 0,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 export function fmtPct(value: number | null | undefined, decimals = 1): string {
   if (value === null || value === undefined) return '—'
   return `${(value * 100).toFixed(decimals)}%`

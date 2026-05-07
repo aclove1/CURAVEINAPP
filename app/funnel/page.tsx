@@ -214,7 +214,7 @@ export default function FunnelPage() {
               Treatment Conversion (Shows → ≥1 procedure) is the gate; pathway completion drives revenue per patient.
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-gray-950/60 border border-gray-800 rounded-lg p-4">
               <div className="text-[10px] text-gray-400 uppercase tracking-wider">Expected Pathway Procs</div>
               <div className="text-xl font-semibold text-white mt-1">
