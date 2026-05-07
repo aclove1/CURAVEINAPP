@@ -2,6 +2,7 @@
 
 import { useModelStore } from '@/lib/store'
 import type { Scenario } from '@/lib/types'
+import { MobileMenuButton } from './MobileMenuButton'
 
 const SCENARIOS: { value: Scenario; label: string; color: string }[] = [
   { value: 'conservative', label: 'Conservative', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
@@ -14,14 +15,17 @@ export function TopBar({ title }: { title: string }) {
   const current = assumptions.scenario
 
   return (
-    <header className="h-14 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-10">
-      <h1 className="text-gray-100 font-semibold text-sm">{title}</h1>
-      <div className="flex items-center gap-1 bg-gray-900 rounded-lg p-1 border border-gray-800">
+    <header className="h-14 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm flex items-center justify-between gap-2 px-4 sm:px-6 sticky top-0 z-20">
+      <div className="flex items-center gap-2 min-w-0">
+        <MobileMenuButton />
+        <h1 className="text-gray-100 font-semibold text-sm truncate">{title}</h1>
+      </div>
+      <div className="flex items-center gap-1 bg-gray-900 rounded-lg p-1 border border-gray-800 flex-shrink-0">
         {SCENARIOS.map(({ value, label, color }) => (
           <button
             key={value}
             onClick={() => setScenario(value)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${
+            className={`px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${
               current === value ? color : 'text-gray-400 border-transparent hover:text-gray-300'
             }`}
           >

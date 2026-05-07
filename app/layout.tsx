@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { AppShell } from '@/components/layout/AppShell'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -42,12 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="dns-prefetch" href="https://static.cloudflareinsights.com" />
       </head>
       <body className="bg-gray-950 text-gray-100 min-h-[100dvh]">
-        <div className="flex min-h-[100dvh]">
-          <Sidebar />
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   )
