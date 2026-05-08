@@ -79,21 +79,16 @@ export function Sidebar() {
         onClick={closeMobileNav}
         className="px-6 py-6 border-b border-gray-800 block hover:bg-gray-900/40 transition-colors"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center gap-2">
           <Image
-            src="/branding/curavein-mark.png"
-            alt="CuraVein logo"
-            width={36}
-            height={36}
+            src="/branding/curavein-logo.svg"
+            alt="CuraVein"
+            width={1103}
+            height={476}
             priority
-            className="flex-shrink-0"
+            className="w-full h-auto"
           />
-          <div>
-            <div className="text-white font-semibold text-base leading-none tracking-tight">
-              CuraVein<span className="text-gray-400 text-[10px] ml-0.5 align-top">™</span>
-            </div>
-            <div className="text-[11px] mt-1" style={{ color: '#C26848' }}>Love Your Legs</div>
-          </div>
+          <div className="text-[11px]" style={{ color: '#C26848' }}>Love Your Legs</div>
         </div>
       </Link>
 
