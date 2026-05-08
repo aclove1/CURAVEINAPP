@@ -12,10 +12,10 @@ import { TopBar } from '@/components/layout/TopBar'
 
 type ViewMode = 'monthly' | 'annual'
 
-function PLCell({ value, color }: { value: number; color?: string }) {
+function PLCell({ value, color, dataLabel }: { value: number; color?: string; dataLabel?: string }) {
   const display = value === 0 ? '—' : value < 0 ? `(${fmtCurrency(-value, false)})` : fmtCurrency(value, false)
   const cls = value < 0 ? 'text-red-400' : color ?? 'text-white'
-  return <td className={`px-4 py-2.5 text-right font-mono text-sm ${cls}`}>{display}</td>
+  return <td data-label={dataLabel} className={`px-4 py-2.5 text-right font-mono text-sm ${cls}`}>{display}</td>
 }
 
 export default function PLPage() {
@@ -184,7 +184,7 @@ export default function PLPage() {
               <div className="px-5 py-4 border-b border-gray-800">
                 <h2 className="text-sm font-semibold text-gray-300">3-Year P&L Summary</h2>
               </div>
-              <table className="w-full text-sm">
+              <table className="mobile-card-table w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-800">
                     <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium w-56">Line Item</th>
@@ -204,18 +204,22 @@ export default function PLPage() {
                     { label: 'EBITDA', key: 'ebitda', color: 'text-yellow-400', bold: true },
                   ].map((row) => {
                     const vals = [annuals.y1, annuals.y2, annuals.y3].map((a) => a[row.key as keyof typeof a] as number)
+                    const yearLabels = ['Year 1', 'Year 2', 'Year 3']
                     return (
                       <tr key={row.key} className={`border-b border-gray-800/50 ${row.bold ? 'bg-gray-800/20' : 'hover:bg-gray-800/10'}`}>
-                        <td className={`px-5 py-3 ${row.bold ? 'font-semibold text-gray-100' : 'text-gray-300'}`}>{row.label}</td>
-                        {vals.map((v, i) => <PLCell key={i} value={v} color={row.color} />)}
+                        <td data-label="Line Item" className={`px-5 py-3 ${row.bold ? 'font-semibold text-gray-100' : 'text-gray-300'}`}>{row.label}</td>
+                        {vals.map((v, i) => <PLCell key={i} dataLabel={yearLabels[i]} value={v} color={row.color} />)}
                       </tr>
                     )
                   })}
                   <tr className="border-b border-gray-800/50">
-                    <td className="px-5 py-3 text-gray-400 text-sm">EBITDA Margin</td>
-                    {[annuals.y1, annuals.y2, annuals.y3].map((a, i) => (
-                      <td key={i} className="px-4 py-3 text-right text-sm text-gray-400">{fmtPct(a.ebitdaMargin)}</td>
-                    ))}
+                    <td data-label="Line Item" className="px-5 py-3 text-gray-400 text-sm">EBITDA Margin</td>
+                    {[annuals.y1, annuals.y2, annuals.y3].map((a, i) => {
+                      const yearLabels = ['Year 1', 'Year 2', 'Year 3']
+                      return (
+                        <td key={i} data-label={yearLabels[i]} className="px-4 py-3 text-right text-sm text-gray-400">{fmtPct(a.ebitdaMargin)}</td>
+                      )
+                    })}
                   </tr>
                 </tbody>
               </table>

@@ -95,7 +95,7 @@ export default function RevenuePage() {
           <div className="px-5 py-4 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-gray-300">Annual Comparison</h2>
           </div>
-          <table className="w-full text-sm">
+          <table className="mobile-card-table w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium">Metric</th>
@@ -110,16 +110,19 @@ export default function RevenuePage() {
                 { label: 'Management Fee', vals: [annuals.y1.managementFee, annuals.y2.managementFee, annuals.y3.managementFee] },
                 { label: 'Net Revenue', vals: [annuals.y1.netRevenue, annuals.y2.netRevenue, annuals.y3.netRevenue] },
                 { label: 'Total Procedures', vals: [annuals.y1.totalProcs, annuals.y2.totalProcs, annuals.y3.totalProcs], isCount: true },
-              ].map((row, i) => (
-                <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                  <td className="px-5 py-3 text-gray-300">{row.label}</td>
-                  {row.vals.map((v, j) => (
-                    <td key={j} className={`px-5 py-3 text-right font-medium ${v < 0 ? 'text-red-400' : row.isCount ? 'text-blue-400' : 'text-emerald-400'}`}>
-                      {row.isCount ? fmtNumber(v) : fmtCurrency(v)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              ].map((row, i) => {
+                const yearLabels = ['Year 1', 'Year 2', 'Year 3']
+                return (
+                  <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                    <td data-label="Metric" className="px-5 py-3 text-gray-300">{row.label}</td>
+                    {row.vals.map((v, j) => (
+                      <td key={j} data-label={yearLabels[j]} className={`px-5 py-3 text-right font-medium ${v < 0 ? 'text-red-400' : row.isCount ? 'text-blue-400' : 'text-emerald-400'}`}>
+                        {row.isCount ? fmtNumber(v) : fmtCurrency(v)}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

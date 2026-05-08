@@ -136,7 +136,7 @@ export default function CogsPage() {
           <div className="px-5 py-4 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-gray-300">COGS Sensitivity — Supply Cost Impact</h2>
           </div>
-          <table className="w-full text-sm">
+          <table className="mobile-card-table w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium">Scenario</th>
@@ -154,11 +154,11 @@ export default function CogsPage() {
                 const grossMargin = totalNetRev > 0 ? grossProfit / totalNetRev : 0
                 return (
                   <tr key={i} className={`border-b border-gray-800/50 ${i === 0 ? 'bg-yellow-500/5' : 'hover:bg-gray-800/30'}`}>
-                    <td className="px-5 py-3 text-gray-300">{row.label}</td>
-                    <td className="px-5 py-3 text-right text-gray-300">{fmtCurrency(adjCost, false)}</td>
-                    <td className="px-5 py-3 text-right text-orange-400">{fmtCurrency(adjTotalCOGS)}</td>
-                    <td className="px-5 py-3 text-right text-emerald-400">{fmtCurrency(grossProfit)}</td>
-                    <td className="px-5 py-3 text-right text-teal-400">{fmtPct(grossMargin)}</td>
+                    <td data-label="Scenario" className="px-5 py-3 text-gray-300">{row.label}</td>
+                    <td data-label="Cost / Proc" className="px-5 py-3 text-right text-gray-300">{fmtCurrency(adjCost, false)}</td>
+                    <td data-label="Total Y1 COGS" className="px-5 py-3 text-right text-orange-400">{fmtCurrency(adjTotalCOGS)}</td>
+                    <td data-label="Gross Profit" className="px-5 py-3 text-right text-emerald-400">{fmtCurrency(grossProfit)}</td>
+                    <td data-label="Gross Margin" className="px-5 py-3 text-right text-teal-400">{fmtPct(grossMargin)}</td>
                   </tr>
                 )
               })}

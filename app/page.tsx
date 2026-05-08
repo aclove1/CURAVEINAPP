@@ -428,7 +428,7 @@ export default function DashboardPage() {
           <div className="px-5 py-4 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-[#5faaa6]">Y1 Funnel Bridge</h2>
           </div>
-          <table className="w-full text-sm">
+          <table className="mobile-card-table w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium">Stage</th>
@@ -448,10 +448,10 @@ export default function DashboardPage() {
                 { stage: 'Gross Revenue', total: bridge.rev, rate: null },
               ].map((r, i) => (
                 <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                  <td className="px-5 py-2.5 text-gray-300 font-medium">{r.stage}</td>
-                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Gross Revenue' ? fmtCurrency(r.total / 12) : fmtDecimal(r.total / 12, 1)}</td>
-                  <td className="px-5 py-2.5 text-right text-white">{r.stage === 'Gross Revenue' ? fmtCurrency(r.total) : fmtNumber(r.total)}</td>
-                  <td className="px-5 py-2.5 text-right text-gray-400">{r.rate !== null ? fmtPct(r.rate) : '\u2014'}</td>
+                  <td data-label="Stage" className="px-5 py-2.5 text-gray-300 font-medium">{r.stage}</td>
+                  <td data-label="Monthly Avg" className="px-5 py-2.5 text-right text-white">{r.stage === 'Gross Revenue' ? fmtCurrency(r.total / 12) : fmtDecimal(r.total / 12, 1)}</td>
+                  <td data-label="Annual" className="px-5 py-2.5 text-right text-white">{r.stage === 'Gross Revenue' ? fmtCurrency(r.total) : fmtNumber(r.total)}</td>
+                  <td data-label="Conv Rate" className="px-5 py-2.5 text-right text-gray-400">{r.rate !== null ? fmtPct(r.rate) : '\u2014'}</td>
                 </tr>
               ))}
             </tbody>
@@ -496,7 +496,7 @@ export default function DashboardPage() {
           <div className="px-5 py-4 border-b border-gray-800">
             <h2 className="text-sm font-semibold text-gray-300">3-Year Summary</h2>
           </div>
-          <table className="w-full text-sm">
+          <table className="mobile-card-table w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left px-5 py-3 text-xs text-gray-400 font-medium">Metric</th>
@@ -518,16 +518,19 @@ export default function DashboardPage() {
                 { label: 'Gross Revenue', vals: [y1Rev, y2Rev, y3Rev], isCurrency: true },
                 { label: 'Mgmt Fee (8%)', vals: [dash.y1.mgmtFee, dash.y2.mgmtFee, dash.y3.mgmtFee], isCurrency: true },
                 { label: 'Net Revenue', vals: [dash.y1.netRevenue, dash.y2.netRevenue, dash.y3.netRevenue], isCurrency: true },
-              ]).map((row, i) => (
-                <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${row.label === 'Net Revenue' ? 'bg-gray-800/20 font-semibold' : ''}`}>
-                  <td className="px-5 py-3 text-gray-300">{row.label}</td>
-                  {row.vals.map((v, j) => (
-                    <td key={j} className={`px-5 py-3 text-right font-medium ${v < 0 ? 'text-red-400' : 'text-white'}`}>
-                      {row.isCurrency ? fmtCurrency(v) : fmtNumber(v)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              ]).map((row, i) => {
+                const yearLabels = ['Year 1', 'Year 2', 'Year 3']
+                return (
+                  <tr key={i} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${row.label === 'Net Revenue' ? 'bg-gray-800/20 font-semibold' : ''}`}>
+                    <td data-label="Metric" className="px-5 py-3 text-gray-300">{row.label}</td>
+                    {row.vals.map((v, j) => (
+                      <td key={j} data-label={yearLabels[j]} className={`px-5 py-3 text-right font-medium ${v < 0 ? 'text-red-400' : 'text-white'}`}>
+                        {row.isCurrency ? fmtCurrency(v) : fmtNumber(v)}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

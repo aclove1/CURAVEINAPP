@@ -139,17 +139,19 @@ function SectionTable({
         <h3 className="text-sm font-semibold text-[#5faaa6]">{title}</h3>
         <button onClick={onReset} className="text-xs text-gray-400 hover:text-gray-300 transition-colors">Reset</button>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-800 bg-gray-900/50">
-            <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Parameter</th>
-            {SCEN_KEYS.map((sk) => (
-              <th key={sk} className="text-right px-4 py-2 text-xs text-gray-400 font-medium">{SCEN_LABELS[sk]}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
+      <div className="scrollable-x">
+        <table className="w-full min-w-[500px]">
+          <thead>
+            <tr className="border-b border-gray-800 bg-gray-900/50">
+              <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Parameter</th>
+              {SCEN_KEYS.map((sk) => (
+                <th key={sk} className="text-right px-4 py-2 text-xs text-gray-400 font-medium">{SCEN_LABELS[sk]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>{children}</tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -177,35 +179,37 @@ function PayerMixSection() {
           className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
         >Reset</button>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-800 bg-gray-900/50">
-            <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Payer</th>
-            <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Weight</th>
-            <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Effective</th>
-          </tr>
-        </thead>
-        <tbody>
-          {PAYER_KEYS.map((pk) => (
-            <tr key={pk} className="border-b border-gray-800 hover:bg-gray-800/20">
-              <td className="px-4 py-2.5 text-sm text-gray-300">{PAYER_LABELS[pk]}</td>
-              <td className="px-4 py-2.5 text-right">
-                <NumberInput
-                  value={mix[pk]}
-                  isPercent
-                  onChange={(v) => handlePayerChange(pk, v)}
-                />
-              </td>
-              <td className="px-4 py-2.5 text-right text-xs text-gray-400">{fmtPct(normalized[pk])}</td>
+      <div className="scrollable-x">
+        <table className="w-full min-w-[400px]">
+          <thead>
+            <tr className="border-b border-gray-800 bg-gray-900/50">
+              <th className="text-left px-4 py-2 text-xs text-gray-400 font-medium">Payer</th>
+              <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Weight</th>
+              <th className="text-right px-4 py-2 text-xs text-gray-400 font-medium">Effective</th>
             </tr>
-          ))}
-          <tr className="bg-gray-800/30">
-            <td className="px-4 py-2.5 text-sm font-semibold text-gray-200">Payer total</td>
-            <td className="px-4 py-2.5 text-right text-sm font-semibold text-gray-200">{(sum * 100).toFixed(1)}%</td>
-            <td className="px-4 py-2.5 text-right text-xs text-gray-400">100.0%</td>
-          </tr>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {PAYER_KEYS.map((pk) => (
+              <tr key={pk} className="border-b border-gray-800 hover:bg-gray-800/20">
+                <td className="px-4 py-2.5 text-sm text-gray-300">{PAYER_LABELS[pk]}</td>
+                <td className="px-4 py-2.5 text-right">
+                  <NumberInput
+                    value={mix[pk]}
+                    isPercent
+                    onChange={(v) => handlePayerChange(pk, v)}
+                  />
+                </td>
+                <td className="px-4 py-2.5 text-right text-xs text-gray-400">{fmtPct(normalized[pk])}</td>
+              </tr>
+            ))}
+            <tr className="bg-gray-800/30">
+              <td className="px-4 py-2.5 text-sm font-semibold text-gray-200">Payer total</td>
+              <td className="px-4 py-2.5 text-right text-sm font-semibold text-gray-200">{(sum * 100).toFixed(1)}%</td>
+              <td className="px-4 py-2.5 text-right text-xs text-gray-400">100.0%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div className="px-4 py-2 border-t border-gray-800">
         <span className="text-xs text-gray-400 italic">Source: CuraVein Referral Tracker</span>
       </div>
