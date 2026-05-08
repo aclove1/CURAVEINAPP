@@ -25,7 +25,7 @@ export function TopBar({ title }: { title: string }) {
           <button
             key={value}
             onClick={() => setScenario(value)}
-            className={`px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${
+            className={`px-3 py-2.5 md:px-3 md:py-1.5 rounded-md text-xs font-medium transition-all border ${
               current === value ? color : 'text-gray-400 border-transparent hover:text-gray-300'
             }`}
           >

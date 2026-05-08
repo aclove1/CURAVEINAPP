@@ -334,7 +334,7 @@ export default function ScenarioPage() {
                   updateAssumption('medicareMix', mix.government)
                   updateAssumption('commercialMix', mix.commercial)
                 }}
-                className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                className={`px-3 py-2.5 md:py-1 text-xs font-medium rounded transition-colors min-h-[44px] md:min-h-0 ${
                   assumptions.market === m ? 'bg-[#5faaa6] text-gray-950 font-semibold' : 'bg-gray-800 text-gray-400 hover:text-gray-200'
                 }`}
               >
@@ -348,7 +348,7 @@ export default function ScenarioPage() {
             <span className="text-xs text-gray-400">Varithena Adoption:</span>
             <button
               onClick={() => updateAssumption('varithenaEnabled', !assumptions.varithenaEnabled)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-3 py-2.5 md:py-1 text-xs font-medium rounded transition-colors min-h-[44px] md:min-h-0 ${
                 assumptions.varithenaEnabled ? 'bg-[#5faaa6] text-gray-950 font-semibold' : 'bg-gray-800 text-gray-400'
               }`}
             >

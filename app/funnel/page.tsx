@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, LineChart, Line, Legend
@@ -26,27 +26,68 @@ function CitationIcon({ citationId }: { citationId: string }) {
   const router = useRouter()
   const [show, setShow] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const wrapperRef = useRef<HTMLSpanElement>(null)
   const citation = getCitationById(citationId)
+
+  // Outside-click + Esc close the popover
+  useEffect(() => {
+    if (!show) return
+    const onPointer = (e: PointerEvent) => {
+      const target = e.target as Node | null
+      if (target && wrapperRef.current && !wrapperRef.current.contains(target)) {
+        setShow(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShow(false) }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [show])
+
   if (!citation) return null
 
+  const open = (e: React.SyntheticEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    // Clamp the centered popover so it never overflows the viewport
+    const halfWidth = 112 // popover w-56 = 224px / 2
+    const margin = 8
+    const minLeft = halfWidth + margin
+    const maxLeft = window.innerWidth - halfWidth - margin
+    const centered = rect.left + rect.width / 2
+    setPos({ top: rect.bottom + 6, left: Math.max(minLeft, Math.min(maxLeft, centered)) })
+    setShow(true)
+  }
+
   return (
-    <span
-      className="inline-flex items-center ml-1.5"
-      onMouseEnter={(e) => {
-        const rect = e.currentTarget.getBoundingClientRect()
-        setPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 })
-        setShow(true)
-      }}
-      onMouseLeave={() => setShow(false)}
-    >
-      <span
-        className="text-[#5faaa6] cursor-pointer text-[10px] select-none hover:text-[#7cc4c0]"
-        onClick={() => router.push(`/citations?highlight=${citationId}`)}
+    <span ref={wrapperRef} className="inline-flex items-center ml-1.5">
+      <button
+        type="button"
+        aria-label={`Citation: ${citation.value}. ${citation.rationale}`}
+        aria-expanded={show}
+        onMouseEnter={open}
+        onMouseLeave={() => setShow(false)}
+        onFocus={open}
+        onBlur={() => setShow(false)}
+        onClick={(e) => {
+          // First tap on touch devices: show tooltip. If already shown, navigate.
+          if (!show) {
+            e.preventDefault()
+            e.stopPropagation()
+            open(e)
+          } else {
+            router.push(`/citations?highlight=${citationId}`)
+          }
+        }}
+        className="text-[#5faaa6] cursor-pointer text-[10px] select-none hover:text-[#7cc4c0] focus:text-[#7cc4c0] focus:outline-none px-1 py-1 -mx-1 -my-1 rounded"
       >
         &#9432;
-      </span>
+      </button>
       {show && pos && (
         <span
+          role="tooltip"
           className="fixed z-[9999] w-56 rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-xs text-gray-300 shadow-lg pointer-events-none"
           style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
         >
@@ -304,7 +345,7 @@ export default function FunnelPage() {
                 <button
                   key={y}
                   onClick={() => setTableYear(y)}
-                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                  className={`px-3 py-2.5 md:py-1 text-xs font-medium rounded transition-colors min-h-[44px] md:min-h-0 ${
                     tableYear === y
                       ? 'bg-[#5faaa6] text-gray-950 font-semibold'
                       : 'bg-gray-800 text-gray-400 hover:text-gray-200'

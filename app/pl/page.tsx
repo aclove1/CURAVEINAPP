@@ -79,7 +79,7 @@ export default function PLPage() {
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
+              className={`px-4 py-2.5 md:py-1.5 rounded-md text-sm font-medium transition-colors capitalize min-h-[44px] md:min-h-0 ${
                 view === v ? 'bg-teal-500/20 text-teal-400' : 'text-gray-400 hover:text-gray-200'
               }`}
             >
