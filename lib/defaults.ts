@@ -15,6 +15,26 @@ import type {
 // + rebuild, or restore the env-gated expression in git history.
 export const V12_HARDENING_ENABLED: boolean = true
 
+// ─── v14.1 ── INVESTOR-FACING INCOME BUFFER ─────────────────────────────
+// Flat 10% conservatism haircut applied to FINAL INCOME NUMBERS shown to
+// the user (Gross Revenue, Net Revenue, EBITDA at the AnnualPL summary
+// level — both dashboard and P&L page). This is presentation-layer ONLY:
+// the underlying month-by-month calc engine is unchanged, audit
+// reconciliation invariants still hold against raw values. The buffer
+// stacks on top of the E&M exclusion buffer (~$192/proc) for a total
+// ~17–18% conservatism vs. clinically expected collections.
+//
+// Disclosure: every dashboard view that displays buffered numbers must
+// surface this fact via the BUFFER_DISCLOSURE string below.
+export const INCOME_BUFFER_FACTOR: number = 0.90  // 10% haircut
+export const BUFFER_DISCLOSURE: string =
+  'Final income numbers (Gross Revenue, Net Revenue, EBITDA) reflect a 10% conservatism buffer (×0.90) applied to modeled values. E&M revenue is also held out as an additional buffer. Underlying month-by-month math reconciles without the buffer.'
+
+/** Apply the investor-facing income buffer to a raw modeled value. */
+export function applyIncomeBuffer(raw: number): number {
+  return Math.round(raw * INCOME_BUFFER_FACTOR)
+}
+
 // Source: SC!B142 market selector → SC!B145-B149.
 // New Braunfels (Comal Co.): 18% age 65+ → 25% govt payer mix.
 // Forney (Kaufman Co.): 11% age 65+ → 15% govt payer mix.
@@ -219,11 +239,15 @@ const PATHWAY_COMPLETION:    ScenarioValues = { conservative: 0.85, base: 0.85, 
 function effectiveProcs(scenario: Scenario): number {
   return EXPECTED_PATHWAY_PROCS[scenario] * PATHWAY_COMPLETION[scenario]
 }
+// Derived values (kept current to avoid drift):
+//   Conservative = Base = 3.625 × 0.85 = 3.08125  (isolated downside — same as Base)
+//   Aggressive   = 4.325 × 0.95 = 4.10875
+//   HybridWound  = Base = 3.08125
 const DERIVED_PROCS_PER_PATIENT: ScenarioValues = {
-  conservative: effectiveProcs('conservative'),  // 2.60
-  base:         effectiveProcs('base'),           // 3.40
-  aggressive:   effectiveProcs('aggressive'),     // 3.80
-  hybridWound:  effectiveProcs('hybridWound'),    // 3.40 (= base)
+  conservative: effectiveProcs('conservative'),  // 3.08125
+  base:         effectiveProcs('base'),           // 3.08125
+  aggressive:   effectiveProcs('aggressive'),     // 4.10875
+  hybridWound:  effectiveProcs('hybridWound'),    // 3.08125 (= base)
 }
 
 // Composite contact rate seeds (Down 37.9% / Base 53.0% / Aggressive 68.1%).
@@ -242,7 +266,8 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   showRate: { conservative: 0.78, base: 0.78, aggressive: 0.85, hybridWound: 0.78 },
   treatmentConversion: { conservative: 0.65, base: 0.65, aggressive: 0.75, hybridWound: 0.65 },
   // v12 — DERIVED = expectedPathwayProcs × pathwayCompletion. Was flat {3.0, 3.5, 4.0}.
-  // Effective: Down 2.60 / Base 3.40 / Aggressive 3.80. Fixes v11 inversion (Aggressive < Base).
+  // Effective (v14 corrected): Down/Base 3.08 / Aggressive 4.11. Isolated downside —
+  // Conservative = Base on procsPerPatient (downside is reimbursement, not pathway).
   procsPerPatient: DERIVED_PROCS_PER_PATIENT,
   expectedPathwayProcs: EXPECTED_PATHWAY_PROCS,
   pathwayCompletion: PATHWAY_COMPLETION,

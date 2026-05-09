@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { DEFAULT_ASSUMPTIONS, CPT_CODES } from '@/lib/defaults'
+import { DEFAULT_ASSUMPTIONS, CPT_CODES, INCOME_BUFFER_FACTOR, BUFFER_DISCLOSURE, applyIncomeBuffer } from '@/lib/defaults'
 import {
   calcWeightedMedicareBase,
   calcOverallBlendedRate,
@@ -42,14 +42,22 @@ export async function GET() {
     }
   })
 
+  // v14.1 — surface BOTH raw and buffered income figures so external
+  // diligence consumers can verify the buffer is applied correctly and
+  // see what was haircut. Costs (mgmtFee, COGS) are not buffered.
   const summarize = (pl: typeof y1PL) => ({
-    annualProcs:  pl.totalProcs,
-    grossRevenue: pl.grossRevenue,
-    mgmtFee:      pl.managementFee,
-    netRevenue:   pl.netRevenue,
-    totalCOGS:    pl.totalCOGS,
-    ebitda:       pl.ebitda,
-    ebitdaMargin: pl.ebitdaMargin,
+    annualProcs:           pl.totalProcs,
+    // raw modeled values
+    grossRevenue:          pl.grossRevenue,
+    mgmtFee:               pl.managementFee,
+    netRevenue:            pl.netRevenue,
+    totalCOGS:             pl.totalCOGS,
+    ebitda:                pl.ebitda,
+    ebitdaMargin:          pl.ebitdaMargin,
+    // v14.1 buffered (×0.90) — what the dashboard displays
+    bufferedGrossRevenue:  applyIncomeBuffer(pl.grossRevenue),
+    bufferedNetRevenue:    applyIncomeBuffer(pl.netRevenue),
+    bufferedEbitda:        applyIncomeBuffer(pl.ebitda),
   })
 
   return NextResponse.json({
@@ -58,6 +66,12 @@ export async function GET() {
       activeScenario:  a.scenario,
       engine:          'lib/model.ts::calcAnnualPL (v10 shadow retired per AUDIT C-4)',
       note:            'Read-only audit export — no model files modified.',
+      // v14.1 — display-layer buffer disclosure for external diligence
+      incomeBuffer: {
+        factor:        INCOME_BUFFER_FACTOR,
+        haircutPct:    Math.round((1 - INCOME_BUFFER_FACTOR) * 100),
+        disclosure:    BUFFER_DISCLOSURE,
+      },
     },
 
     reimbursement: {
@@ -120,11 +134,17 @@ export async function GET() {
     },
 
     monthlyY1: y1Months.map(m => ({
-      month:          m.month,
-      blendedRate:    m.blendedRate,
-      totalProcs:     m.totalProcs,
-      grossRevenue:   m.grossRevenue,
-      commercialPct:  m.grossRevenue > 0
+      month:           m.month,
+      blendedRate:     m.blendedRate,
+      totalProcs:      m.totalProcs,
+      grossRevenue:    m.grossRevenue,
+      // v14 — surface bundle lines for external diligence reconciliation:
+      //   grossRevenue == medicareRevenue + commercialRevenue + usRevenue + scleroRevenue
+      medicareRevenue: m.medicareRevenue,
+      commercialRevenue: m.commercialRevenue,
+      usRevenue:       m.usRevenue,
+      scleroRevenue:   m.scleroRevenue,
+      commercialPct:   m.grossRevenue > 0
         ? m.commercialRevenue / m.grossRevenue
         : 0,
     })),

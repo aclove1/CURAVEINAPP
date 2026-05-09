@@ -15,6 +15,7 @@ import {
   adjustAssumptionsForYear,
   effectiveProcsPerPatient,
 } from '@/lib/model'
+import { applyIncomeBuffer, INCOME_BUFFER_FACTOR, BUFFER_DISCLOSURE } from '@/lib/defaults'
 import type { Scenario } from '@/lib/types'
 
 // AUDIT 2026-04-23 C-7 resolved: tooltip now labels revenue dynamics on the
@@ -109,12 +110,17 @@ export default function DashboardPage() {
       }
     })
 
+    // v14.1 — apply 10% conservatism buffer to FINAL INCOME numbers shown
+    // to the user (gross/net/ebitda). Blended rate, procedure counts, mgmt
+    // fee dollars stay raw — they're operational metrics, not income.
     const summarize = (pl: typeof y1PL) => ({
       annualProcs: pl.totalProcs,
       blendedRate: pl.totalProcs > 0 ? Math.round(pl.grossRevenue / pl.totalProcs) : 0,
-      grossRevenue: pl.grossRevenue,
+      grossRevenue: applyIncomeBuffer(pl.grossRevenue),
       mgmtFee: pl.managementFee,
-      netRevenue: pl.netRevenue,
+      netRevenue: applyIncomeBuffer(pl.netRevenue),
+      ebitda: applyIncomeBuffer(pl.ebitda),
+      ebitdaMargin: pl.ebitdaMargin, // unchanged (proportional buffer cancels in ratio)
     })
 
     // AUDIT 2026-04-24 C-9 resolved: use PL-derived per-year blended rate
@@ -132,10 +138,30 @@ export default function DashboardPage() {
     }
   }, [assumptions])
 
-  // Convenience aliases
-  const pl1 = useMemo(() => calcAnnualPL(1, assumptions), [assumptions])
-  const pl2 = useMemo(() => calcAnnualPL(2, assumptions), [assumptions])
-  const pl3 = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
+  // Convenience aliases — buffered for display. Raw (unbuffered) AnnualPL is
+  // not consumed by the dashboard. P&L page renders raw + buffered side-by-side
+  // for transparency.
+  const pl1Raw = useMemo(() => calcAnnualPL(1, assumptions), [assumptions])
+  const pl2Raw = useMemo(() => calcAnnualPL(2, assumptions), [assumptions])
+  const pl3Raw = useMemo(() => calcAnnualPL(3, assumptions), [assumptions])
+  const pl1 = useMemo(() => ({
+    ...pl1Raw,
+    grossRevenue: applyIncomeBuffer(pl1Raw.grossRevenue),
+    netRevenue:   applyIncomeBuffer(pl1Raw.netRevenue),
+    ebitda:       applyIncomeBuffer(pl1Raw.ebitda),
+  }), [pl1Raw])
+  const pl2 = useMemo(() => ({
+    ...pl2Raw,
+    grossRevenue: applyIncomeBuffer(pl2Raw.grossRevenue),
+    netRevenue:   applyIncomeBuffer(pl2Raw.netRevenue),
+    ebitda:       applyIncomeBuffer(pl2Raw.ebitda),
+  }), [pl2Raw])
+  const pl3 = useMemo(() => ({
+    ...pl3Raw,
+    grossRevenue: applyIncomeBuffer(pl3Raw.grossRevenue),
+    netRevenue:   applyIncomeBuffer(pl3Raw.netRevenue),
+    ebitda:       applyIncomeBuffer(pl3Raw.ebitda),
+  }), [pl3Raw])
   const widgetScenario: Scenario = assumptions.scenario
 
   // 4-scenario toggle for dashboard.
@@ -165,7 +191,12 @@ export default function DashboardPage() {
   const totalMarketing = dash.y1Months.reduce((s, m) => s + m.marketingSpend, 0)
   const totalTreated = dash.y1Months.reduce((s, m) => s + m.treatedPatients, 0)
   const cpa = totalTreated > 0 ? totalMarketing / totalTreated : 0
-  const revPerProc = y1Procs > 0 ? y1Rev / y1Procs : 0
+  // v14.1 — Revenue/proc and Revenue/patient are TECHNICAL OPERATING METRICS
+  // (per-unit reimbursement view), not income totals. Computed from RAW Y1
+  // (pre-buffer) so the operator sees the actual modeled per-procedure
+  // economics. Annual totals shown elsewhere on the page apply the 10% buffer.
+  const y1RevRaw = pl1Raw.grossRevenue
+  const revPerProc = y1Procs > 0 ? y1RevRaw / y1Procs : 0
   const revPerPatient = dash.scenario.procsPerPatient > 0 ? revPerProc * dash.scenario.procsPerPatient : 0
 
   const demandChartData = dash.y1Months.map(m => ({
@@ -175,7 +206,9 @@ export default function DashboardPage() {
     excess: Math.max(0, m.rawProcs - dash.scenario.maxCapacityPerMonth),
   }))
 
-  // Funnel bridge
+  // Funnel bridge — gross revenue buffered for display consistency with
+  // the rest of the dashboard. Stage counts (leads/contacts/...) are
+  // operational metrics, not income, so they stay raw.
   const bridge = useMemo(() => {
     const ms = dash.y1Months
     const leads = ms.reduce((s, m) => s + m.leads, 0)
@@ -184,7 +217,7 @@ export default function DashboardPage() {
     const shows = ms.reduce((s, m) => s + m.shows, 0)
     const treated = ms.reduce((s, m) => s + m.treatedPatients, 0)
     const procs = ms.reduce((s, m) => s + m.totalProcs, 0)
-    const rev = ms.reduce((s, m) => s + m.grossRevenue, 0)
+    const rev = applyIncomeBuffer(ms.reduce((s, m) => s + m.grossRevenue, 0))
     return { leads, contacts, booked, shows, treated, procs, rev }
   }, [dash.y1Months])
 
@@ -203,6 +236,25 @@ export default function DashboardPage() {
           >
             CuraVein&trade; Flagship Proforma
           </a>
+        </div>
+
+        {/* v14.1 — Investor-facing income buffer disclosure. Mandatory per
+            BUFFER_DISCLOSURE in lib/defaults.ts. Visible above the fold on
+            every dashboard view that displays buffered final income numbers. */}
+        <div className="bg-amber-950/30 border border-amber-700/50 rounded-lg px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-300 text-lg leading-none mt-0.5">⚠</span>
+          <div className="flex-1">
+            <div className="text-xs font-semibold text-amber-200 uppercase tracking-wider mb-1">
+              Conservatism Buffer Applied — {Math.round((1 - INCOME_BUFFER_FACTOR) * 100)}% off final income figures
+            </div>
+            <p className="text-[11px] text-amber-100/80 leading-relaxed">
+              {BUFFER_DISCLOSURE} Per-procedure reimbursement rates (Blended
+              Rate, Revenue/Procedure, Revenue/Patient) display the raw modeled
+              values; annual <span className="font-semibold">Gross Revenue</span>,{' '}
+              <span className="font-semibold">Net Revenue</span>, and{' '}
+              <span className="font-semibold">EBITDA</span> are post-buffer.
+            </p>
+          </div>
         </div>
 
         {/* Scenario Selector — prominent master control. Drives every number on the page. */}

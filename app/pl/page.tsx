@@ -7,8 +7,14 @@ import {
 } from 'recharts'
 import { useModelStore } from '@/lib/store'
 import { calcPLMonth, calcAnnualPL, calcOpexMonth, adjustAssumptionsForYear } from '@/lib/model'
+import { applyIncomeBuffer, INCOME_BUFFER_FACTOR, BUFFER_DISCLOSURE } from '@/lib/defaults'
 import { fmtCurrency, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
+
+// v14.1 — Income line items (grossRevenue, netRevenue, grossProfit, ebitda)
+// receive the 10% conservatism buffer; cost line items (managementFee,
+// totalCOGS, totalOpex) and ratios (ebitdaMargin) stay raw. EBITDA margin
+// is unaffected because the proportional buffer cancels in the ratio.
 
 type ViewMode = 'monthly' | 'annual'
 
@@ -27,21 +33,41 @@ export default function PLPage() {
   // (calcAnnualPL internally adjusts). Previously this page iterated against
   // raw assumptions.maxCapacityPerMonth=146, diverging from annuals by ~29%.
   const adjY1 = useMemo(() => adjustAssumptionsForYear(1, assumptions), [assumptions])
-  const months = useMemo(() =>
+  // v14.1 — months/annuals carry RAW values for engine math. Buffered display
+  // copies are derived once and used by all downstream rendering. This keeps
+  // any potential per-month chart math (which we don't currently do) safe.
+  const monthsRaw = useMemo(() =>
     Array.from({ length: 12 }, (_, i) => calcPLMonth(i + 1, adjY1)),
     [adjY1]
   )
+  const months = useMemo(() => monthsRaw.map(m => ({
+    ...m,
+    grossRevenue: applyIncomeBuffer(m.grossRevenue),
+    netRevenue:   applyIncomeBuffer(m.netRevenue),
+    grossProfit:  applyIncomeBuffer(m.grossProfit),
+    ebitda:       applyIncomeBuffer(m.ebitda),
+  })), [monthsRaw])
 
   const opexMonths = useMemo(() =>
     Array.from({ length: 12 }, (_, i) => calcOpexMonth(i + 1, adjY1)),
     [adjY1]
   )
 
-  const annuals = useMemo(() => ({
+  const annualsRaw = useMemo(() => ({
     y1: calcAnnualPL(1, assumptions),
     y2: calcAnnualPL(2, assumptions),
     y3: calcAnnualPL(3, assumptions),
   }), [assumptions])
+  const annuals = useMemo(() => {
+    const buf = (pl: typeof annualsRaw.y1) => ({
+      ...pl,
+      grossRevenue: applyIncomeBuffer(pl.grossRevenue),
+      netRevenue:   applyIncomeBuffer(pl.netRevenue),
+      grossProfit:  applyIncomeBuffer(pl.grossProfit),
+      ebitda:       applyIncomeBuffer(pl.ebitda),
+    })
+    return { y1: buf(annualsRaw.y1), y2: buf(annualsRaw.y2), y3: buf(annualsRaw.y3) }
+  }, [annualsRaw])
 
   const monthlyChartData = useMemo(() => months.map((m, i) => ({
     month: MONTH_LABELS[i],
@@ -73,6 +99,24 @@ export default function PLPage() {
     <div>
       <TopBar title="P&L Statement" />
       <div className="p-6 space-y-6">
+
+        {/* v14.1 — Investor-facing income buffer disclosure (mirrors dashboard). */}
+        <div className="bg-amber-950/30 border border-amber-700/50 rounded-lg px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-300 text-lg leading-none mt-0.5">⚠</span>
+          <div className="flex-1">
+            <div className="text-xs font-semibold text-amber-200 uppercase tracking-wider mb-1">
+              Conservatism Buffer Applied — {Math.round((1 - INCOME_BUFFER_FACTOR) * 100)}% off final income figures
+            </div>
+            <p className="text-[11px] text-amber-100/80 leading-relaxed">
+              {BUFFER_DISCLOSURE} On this page, the buffer applies to{' '}
+              <span className="font-semibold">Gross Revenue</span>,{' '}
+              <span className="font-semibold">Net Revenue</span>,{' '}
+              <span className="font-semibold">Gross Profit</span>, and{' '}
+              <span className="font-semibold">EBITDA</span> (both monthly and annual views).
+              Costs (Mgmt Fee, COGS, OpEx) and EBITDA Margin display unbuffered.
+            </p>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2 bg-gray-900 rounded-lg p-1 w-fit border border-gray-800">
           {(['monthly', 'annual'] as ViewMode[]).map((v) => (
