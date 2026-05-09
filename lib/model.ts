@@ -279,17 +279,25 @@ export function calcRevenueMonth(month: number, a: Assumptions, year: 1 | 2 | 3 
   const usRevenue = V12_HARDENING_ENABLED
     ? Math.round(billedPatients * sv(a.usRevenuePerPatient, a.scenario))
     : 0
-  const grossRevenue = procRevenue + usRevenue
+  // v14 ── Liquid sclerotherapy bundle line. Real-world: residual tributary /
+  // reticular sclero after truncal ablation (36470/36471) — routine practice,
+  // previously zero in model (36471 was retired from PRIMARY mix when
+  // Varithena replaced it for foam treatment of saphenous tributaries).
+  // E&M revenue is intentionally NOT wired — held as conservatism buffer
+  // (~$192/proc real-world). If/when E&M is added, follow this same pattern.
+  const scleroRevenue = V12_HARDENING_ENABLED
+    ? Math.round(billedPatients * sv(a.scleroRevenuePerPatient, a.scenario))
+    : 0
+  const grossRevenue = procRevenue + usRevenue + scleroRevenue
   const managementFee = -Math.round(a.managementFeeRate * grossRevenue)
   const netRevenue = grossRevenue + managementFee
   // AUDIT 2026-04-26 C-12: payer split is now derived from procRevenue with
   // commercial as the residual, so medicareRevenue + commercialRevenue +
-  // usRevenue == grossRevenue exactly (no rounding gap). Previously the
-  // split omitted realization while blendedRate applied it, so the /revenue
-  // Monthly Detail table's "Medicare Rev + Commercial Rev" diverged from
-  // "Gross Revenue" by ~6%. Investor diligence-fail. Direct three-way round
-  // (med, comm, us) introduces $20–$56/month rounding noise; computing
-  // commercial as procRevenue − medicareRevenue absorbs that residual.
+  // usRevenue + scleroRevenue == grossRevenue exactly (no rounding gap).
+  // Previously the split omitted realization while blendedRate applied it,
+  // so /revenue's "Medicare Rev + Commercial Rev" diverged from gross by ~6%.
+  // Investor diligence-fail. Direct multi-way round introduces rounding noise;
+  // computing commercial as procRevenue − medicareRevenue absorbs the residual.
   const denom = govMix + commMix * commMultiplier
   const medicareShare = denom > 0 ? govMix / denom : 0
   const medicareRevenue = Math.round(procRevenue * medicareShare)
@@ -297,7 +305,7 @@ export function calcRevenueMonth(month: number, a: Assumptions, year: 1 | 2 | 3 
   // Reference the realization/medicareRate inputs so future readers see the
   // numerator semantics; values themselves flow through procRevenue/blendedRate.
   void realization; void medicareRate
-  return { month, blendedRate, grossRevenue, managementFee, netRevenue, medicareRevenue, commercialRevenue, usRevenue, procs }
+  return { month, blendedRate, grossRevenue, managementFee, netRevenue, medicareRevenue, commercialRevenue, usRevenue, scleroRevenue, procs }
 }
 
 /* ── COGS ─────────────────────────────────────────────────── */

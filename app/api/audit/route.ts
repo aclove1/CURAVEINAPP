@@ -35,8 +35,10 @@ export async function GET() {
       medicareRevenue: r.medicareRevenue,
       commercialRevenue: r.commercialRevenue,
       // AUDIT 2026-04-26 C-12: surfaced so external diligence consumers can
-      // verify medicareRevenue + commercialRevenue + usRevenue == grossRevenue.
+      // verify medicareRevenue + commercialRevenue + usRevenue + scleroRevenue == grossRevenue.
+      // v14: scleroRevenue added as third bundle line.
       usRevenue: r.usRevenue,
+      scleroRevenue: r.scleroRevenue,
     }
   })
 

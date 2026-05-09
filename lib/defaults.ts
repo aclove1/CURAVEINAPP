@@ -177,6 +177,27 @@ export const US_REVENUE_PER_PATIENT: ScenarioValues = {
   hybridWound:  1295,
 }
 
+/** v14 ── Liquid Sclerotherapy Revenue per treated patient.
+ *  Bundle line for residual tributary / reticular vein treatment after truncal
+ *  ablation. Routine in real practice; previously zero in model (36471 retired
+ *  from primary mix when Varithena replaced it as the foam treatment for
+ *  saphenous tributaries). 36470/36471 remain billable for non-truncal sclero.
+ *
+ *  Build (Medicare base × scenario multiplier (gov + comm × 1.496) × realization):
+ *    Down: 1× 36471 ($231)              × 1.205 = $278
+ *    Base: 2× 36471 ($462)              × 1.290 = $596
+ *    Up:   2× 36471 + 1× 36470 ($558)   × 1.336 = $745
+ *
+ *  Wired into calcRevenueMonth as separate line: scleroRevenue =
+ *  billedPatients × scleroRevenuePerPatient. Does not affect blendedRate or
+ *  primary-CPT payer split (sits outside the primary-mix residual). */
+export const SCLERO_REVENUE_PER_PATIENT: ScenarioValues = {
+  conservative: 278,
+  base:         596,
+  aggressive:   745,
+  hybridWound:  596,
+}
+
 /** Derived: weighted procs/patient per scenario (replaces flat 4.0 when flag on) */
 const DERIVED_WEIGHTED_PROCS: ScenarioValues = {
   conservative: calcWeightedProcsFromDistribution(COMPLEXITY_DISTRIBUTION.conservative),
@@ -232,6 +253,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   netRealizationFactor: NET_REALIZATION_FACTOR,
   targetedCommercialShare: TARGETED_COMMERCIAL_SHARE,
   usRevenuePerPatient: US_REVENUE_PER_PATIENT,
+  scleroRevenuePerPatient: SCLERO_REVENUE_PER_PATIENT,
   // Hybrid Wound Care Center Referral Base — Month-1 utilized procedure capacity.
   // Range 0.10-1.00. Default 0.75 = 75% of net capacity filled in Month 1 from
   // embedded wound-care referrals. Only consumed when scenario === 'hybridWound'.

@@ -61,15 +61,16 @@ for (const sc of ['conservative', 'base', 'aggressive'] as const) {
   console.log(`[C-11] monthsAtCapacity uses adjY1 cap (${adjY1.maxCapacityPerMonth}/mo):${' '.repeat(Math.max(0, 14 - String(adjY1.maxCapacityPerMonth).length))}${t4 ? '✓' : '✗'}  (km=${km.monthsAtCapacity}/${expectedCap})`)
   if (!t4) allPass = false
 
-  // Test 5 — C-12: medicare + commercial + us == gross every month (exact).
+  // Test 5 — C-12: medicare + commercial + us + sclero == gross every month (exact).
+  // v14: scleroRevenue added as bundle line. Reconciliation invariant updated.
   let maxDelta = 0
   for (let m = 1; m <= 12; m++) {
     const r = calcRevenueMonth(m, adjY1, 1)
-    const delta = Math.abs(r.medicareRevenue + r.commercialRevenue + r.usRevenue - r.grossRevenue)
+    const delta = Math.abs(r.medicareRevenue + r.commercialRevenue + r.usRevenue + r.scleroRevenue - r.grossRevenue)
     if (delta > maxDelta) maxDelta = delta
   }
   const t5 = maxDelta === 0
-  console.log(`[C-12] med + comm + us == gross (per-month, exact):          ${t5 ? '✓' : '✗'}  (maxΔ=$${maxDelta})`)
+  console.log(`[C-12] med + comm + us + sclero == gross (per-month, exact): ${t5 ? '✓' : '✗'}  (maxΔ=$${maxDelta})`)
   if (!t5) allPass = false
 
   console.log(`Y1 ground truth: procs=${pl1.totalProcs}  gross=$${fmt(pl1.grossRevenue)}  ebitda=$${fmt(pl1.ebitda)}  margin=${(pl1.ebitdaMargin*100).toFixed(1)}%  break-even=M${km.breakevenMonth}`)

@@ -108,6 +108,17 @@ export interface Assumptions {
   // separate revenue line. Per-patient assumption reflects pathway cadence
   // (diagnostic + pre-proc × 2 legs + 2-4 follow-up scans) × blended US rate.
   usRevenuePerPatient: ScenarioValues                             // Down $925 / Base $1,295 / Up $1,480
+  // v14 — Liquid sclerotherapy revenue per treated patient (36470/36471).
+  // Bundle line parallel to usRevenuePerPatient. Real-world clinical pathway:
+  // truncal ablation handles the saphenous trunk; residual tributaries and
+  // reticular veins require follow-up liquid sclero in routine practice.
+  // Build (Medicare base × scenario multiplier (gov + comm × 1.496) × realization):
+  //   Down: 1× 36471 ($231)              × 1.205 = $278
+  //   Base: 2× 36471 ($462)              × 1.290 = $596
+  //   Up:   2× 36471 + 1× 36470 ($558)   × 1.336 = $745
+  // E&M revenue is intentionally NOT modeled — held as conservatism buffer
+  // (~$192/proc real-world). See methodology note in calcRevenueMonth.
+  scleroRevenuePerPatient: ScenarioValues                         // Down $278 / Base $596 / Up $745
   // Hybrid Wound Care Center Referral Base scenario: month-1 utilized procedure
   // capacity from embedded wound-care referrals. Range 0.10-1.00, default 0.75.
   // Only consumed when scenario === 'hybridWound'; ignored by other scenarios.
@@ -187,7 +198,10 @@ export interface RevenueMonth {
   // Previously usRevenue was bundled into grossRevenue with no breakout, and
   // the medicare/commercial split omitted realization — diverging from the
   // gross by ~6%.
+  // v14: scleroRevenue added as third bundle line. Reconciliation invariant:
+  //   grossRevenue = medicareRevenue + commercialRevenue + usRevenue + scleroRevenue
   usRevenue: number
+  scleroRevenue: number
   procs: number
 }
 
