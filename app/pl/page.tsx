@@ -7,9 +7,10 @@ import {
 } from 'recharts'
 import { useModelStore } from '@/lib/store'
 import { calcPLMonth, calcAnnualPL, calcOpexMonth, adjustAssumptionsForYear } from '@/lib/model'
-import { applyIncomeBuffer, INCOME_BUFFER_FACTOR, BUFFER_DISCLOSURE } from '@/lib/defaults'
+import { applyIncomeBuffer } from '@/lib/defaults'
 import { fmtCurrency, fmtPct, MONTH_LABELS } from '@/lib/formatters'
 import { TopBar } from '@/components/layout/TopBar'
+import { ModelDisclosure } from '@/components/ui/ModelDisclosure'
 
 // v14.1 — Income line items (grossRevenue, netRevenue, grossProfit, ebitda)
 // receive the 10% conservatism buffer; cost line items (managementFee,
@@ -100,23 +101,8 @@ export default function PLPage() {
       <TopBar title="P&L Statement" />
       <div className="p-6 space-y-6">
 
-        {/* v14.1 — Investor-facing income buffer disclosure (mirrors dashboard). */}
-        <div className="bg-amber-950/30 border border-amber-700/50 rounded-lg px-4 py-3 flex items-start gap-3">
-          <span className="text-amber-300 text-lg leading-none mt-0.5">⚠</span>
-          <div className="flex-1">
-            <div className="text-xs font-semibold text-amber-200 uppercase tracking-wider mb-1">
-              Conservatism Buffer Applied — {Math.round((1 - INCOME_BUFFER_FACTOR) * 100)}% off final income figures
-            </div>
-            <p className="text-[11px] text-amber-100/80 leading-relaxed">
-              {BUFFER_DISCLOSURE} On this page, the buffer applies to{' '}
-              <span className="font-semibold">Gross Revenue</span>,{' '}
-              <span className="font-semibold">Net Revenue</span>,{' '}
-              <span className="font-semibold">Gross Profit</span>, and{' '}
-              <span className="font-semibold">EBITDA</span> (both monthly and annual views).
-              Costs (Mgmt Fee, COGS, OpEx) and EBITDA Margin display unbuffered.
-            </p>
-          </div>
-        </div>
+        {/* v14.1 — Shared model disclosure (defines $/procedure CPT build + buffers). */}
+        <ModelDisclosure />
 
         <div className="flex items-center gap-2 bg-gray-900 rounded-lg p-1 w-fit border border-gray-800">
           {(['monthly', 'annual'] as ViewMode[]).map((v) => (

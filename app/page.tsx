@@ -15,7 +15,8 @@ import {
   adjustAssumptionsForYear,
   effectiveProcsPerPatient,
 } from '@/lib/model'
-import { applyIncomeBuffer, INCOME_BUFFER_FACTOR, BUFFER_DISCLOSURE } from '@/lib/defaults'
+import { applyIncomeBuffer } from '@/lib/defaults'
+import { ModelDisclosure } from '@/components/ui/ModelDisclosure'
 import type { Scenario } from '@/lib/types'
 
 // AUDIT 2026-04-23 C-7 resolved: tooltip now labels revenue dynamics on the
@@ -238,24 +239,9 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* v14.1 — Investor-facing income buffer disclosure. Mandatory per
-            BUFFER_DISCLOSURE in lib/defaults.ts. Visible above the fold on
-            every dashboard view that displays buffered final income numbers. */}
-        <div className="bg-amber-950/30 border border-amber-700/50 rounded-lg px-4 py-3 flex items-start gap-3">
-          <span className="text-amber-300 text-lg leading-none mt-0.5">⚠</span>
-          <div className="flex-1">
-            <div className="text-xs font-semibold text-amber-200 uppercase tracking-wider mb-1">
-              Conservatism Buffer Applied — {Math.round((1 - INCOME_BUFFER_FACTOR) * 100)}% off final income figures
-            </div>
-            <p className="text-[11px] text-amber-100/80 leading-relaxed">
-              {BUFFER_DISCLOSURE} Per-procedure reimbursement rates (Blended
-              Rate, Revenue/Procedure, Revenue/Patient) display the raw modeled
-              values; annual <span className="font-semibold">Gross Revenue</span>,{' '}
-              <span className="font-semibold">Net Revenue</span>, and{' '}
-              <span className="font-semibold">EBITDA</span> are post-buffer.
-            </p>
-          </div>
-        </div>
+        {/* v14.1 — Model disclosure: defines the $/procedure CPT build
+            and notes income buffers. Calm dark panel, surfaced once at top. */}
+        <ModelDisclosure />
 
         {/* Scenario Selector — prominent master control. Drives every number on the page. */}
         <div className="bg-gradient-to-r from-[#5faaa6]/10 via-gray-900 to-gray-900 border-2 border-[#5faaa6]/30 rounded-xl p-5">
