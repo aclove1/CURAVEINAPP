@@ -1,5 +1,6 @@
 node_modules/
 .env
+.env*.local
 .next
 
 # OS / IDE junk
@@ -9,6 +10,8 @@ tsconfig.tsbuildinfo
 
 # Working scaffolds
 _v12_smoke.ts
-.DS_Store
 *.tsbuildinfo
 _*.ts
+
+# Vercel
+.vercel

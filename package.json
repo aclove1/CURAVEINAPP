@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:open": "(for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000 && open http://localhost:3000 && exit 0; sleep 0.5; done) & next dev",
     "build": "next build",
     "start": "next start",
+    "preview:open": "(for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000 && open http://localhost:3000 && exit 0; sleep 0.5; done) & next start",
     "lint": "next lint"
   },
   "dependencies": {
