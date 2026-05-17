@@ -15,3 +15,6 @@ _*.ts
 
 # Vercel
 .vercel
+
+# Local tool configs (Claude Code, etc.)
+.claude/
