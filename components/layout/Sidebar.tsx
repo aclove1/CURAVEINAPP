@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
-import { LayoutDashboard, SlidersHorizontal, TrendingUp, DollarSign, Package, ChartBar as BarChart3, Activity, FileText, BookOpen } from 'lucide-react'
+import { LayoutDashboard, SlidersHorizontal, TrendingUp, DollarSign, Package, ChartBar as BarChart3, Activity, FileText, BookOpen, Calculator } from 'lucide-react'
 import { useUIState } from './UIStateContext'
 
 const NAV_ITEMS = [
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/pl', label: 'P&L', icon: BarChart3 },
   { href: '/sensitivity', label: 'Sensitivity', icon: Activity },
   { href: '/cpt', label: 'CPT Revenue', icon: FileText },
+  { href: '/methodology', label: 'Methodology', icon: Calculator },
   { href: '/citations', label: 'Citations', icon: BookOpen },
 ]
 
