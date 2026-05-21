@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" role="img" aria-labelledby="title desc">
+  <title id="title">aaron.love</title>
+  <desc id="desc">A profile face holding a spray can painting a red heart — logo for aaron.love art portfolio.</desc>
+
+  <defs>
+    <linearGradient id="canBody" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9aa1ad"/>
+      <stop offset="45%" stop-color="#eef0f4"/>
+      <stop offset="100%" stop-color="#6e747f"/>
+    </linearGradient>
+    <linearGradient id="canCap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0d0d0d"/>
+      <stop offset="50%" stop-color="#3a3a3a"/>
+      <stop offset="100%" stop-color="#0d0d0d"/>
+    </linearGradient>
+    <radialGradient id="mist" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#e63946" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#e63946" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Spray mist between can and heart -->
+  <ellipse cx="600" cy="290" rx="170" ry="110" fill="url(#mist)"/>
+
+  <!-- HEART -->
+  <g transform="rotate(-6 700 280)">
+    <path d="M700 430
+             C700 430, 530 330, 530 220
+             C530 170, 572 135, 620 135
+             C652 135, 680 153, 695 180
+             C710 153, 738 135, 770 135
+             C818 135, 860 170, 860 220
+             C860 330, 700 430, 700 430 Z"
+          fill="#e63946"/>
+    <!-- Drip -->
+    <path d="M610 350
+             C610 350, 604 392, 608 412
+             C611 428, 624 428, 626 412
+             C630 392, 622 350, 622 350 Z"
+          fill="#e63946"/>
+    <!-- Highlight -->
+    <path d="M588 195
+             C588 173, 612 158, 634 167
+             C620 170, 606 188, 606 208
+             C606 217, 602 218, 596 213
+             C590 209, 588 200, 588 195 Z"
+          fill="#ffffff" fill-opacity="0.25"/>
+  </g>
+
+  <!-- PROFILE FACE — single silhouette, right-facing, recognizable -->
+  <!-- Drawn going clockwise from top of forehead -->
+  <path d="M 340 195
+           C 340 145, 295 110, 245 110
+           C 175 110, 130 160, 130 230
+           C 130 290, 165 330, 180 360
+           L 195 410
+           L 210 460
+           L 210 500
+           L 95 500
+           L 95 580
+           L 260 580
+           L 260 525
+           C 260 510, 268 498, 282 492
+           L 320 478
+           C 332 472, 340 462, 340 450
+           L 340 432
+           L 358 430
+           C 366 430, 372 424, 372 416
+           L 372 402
+           L 358 390
+           L 366 372
+           L 354 360
+           L 372 340
+           L 372 320
+           L 398 312
+           C 408 308, 412 298, 408 288
+           L 388 270
+           L 372 252
+           L 360 232
+           L 348 220
+           Z"
+        fill="#1a1a1a"/>
+
+  <!-- Eye detail -->
+  <circle cx="288" cy="252" r="6" fill="#f5f1e8"/>
+  <circle cx="290" cy="252" r="3" fill="#1a1a1a"/>
+
+  <!-- Brow -->
+  <path d="M268 232 L308 224 L312 234 L268 240 Z" fill="#0a0a0a"/>
+
+  <!-- Lip line accent -->
+  <path d="M348 388 L362 388" stroke="#3a2828" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- ARM dropping from below face -->
+  <path d="M260 580
+           L260 760
+           L470 760
+           L470 660
+           C470 645, 462 635, 448 635
+           L320 635
+           C310 635, 302 628, 302 618
+           L302 588
+           Z"
+        fill="#1a1a1a"/>
+
+  <!-- HAND gripping the can -->
+  <g fill="#1a1a1a">
+    <!-- palm wrapping behind can -->
+    <path d="M380 510
+             C368 510, 360 518, 360 530
+             L360 660
+             C360 674, 370 684, 384 684
+             L520 684
+             C534 684, 544 674, 544 660
+             L544 530
+             C544 518, 536 510, 524 510
+             L516 510
+             L516 540
+             C516 552, 508 560, 496 560
+             C484 560, 476 552, 476 540
+             L476 510 Z"/>
+    <!-- thumb in front -->
+    <path d="M420 526
+             C410 526, 402 534, 402 544
+             L402 600
+             C402 612, 412 620, 424 620
+             L470 620
+             C480 620, 488 612, 488 602
+             L488 548
+             C488 538, 480 530, 470 530 Z"
+          fill="#2a2a2a"/>
+  </g>
+
+  <!-- SPRAY CAN — solid, clearly defined, in foreground -->
+  <g>
+    <!-- shadow under can -->
+    <ellipse cx="450" cy="690" rx="58" ry="6" fill="#000" fill-opacity="0.25"/>
+
+    <!-- can body -->
+    <rect x="406" y="420" width="92" height="240" rx="6"
+          fill="url(#canBody)" stroke="#1f1f1f" stroke-width="3"/>
+
+    <!-- red label band -->
+    <rect x="406" y="490" width="92" height="80" fill="#e63946"/>
+    <rect x="406" y="490" width="92" height="6" fill="#a8202c"/>
+    <rect x="406" y="564" width="92" height="6" fill="#a8202c"/>
+
+    <!-- LOVE label text -->
+    <text x="452" y="540" text-anchor="middle"
+          font-family="Impact, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+          font-size="32" font-weight="900" fill="#fff8ee" letter-spacing="3">LOVE</text>
+
+    <!-- body highlight stripe -->
+    <rect x="416" y="426" width="6" height="228" fill="#ffffff" fill-opacity="0.45"/>
+    <rect x="486" y="426" width="3" height="228" fill="#000000" fill-opacity="0.18"/>
+
+    <!-- cap base ring -->
+    <rect x="406" y="408" width="92" height="14" fill="#0d0d0d"/>
+
+    <!-- cap -->
+    <rect x="416" y="352" width="72" height="60" rx="6"
+          fill="url(#canCap)" stroke="#000" stroke-width="2"/>
+    <rect x="424" y="358" width="6" height="50" fill="#ffffff" fill-opacity="0.25"/>
+
+    <!-- nozzle stem -->
+    <rect x="444" y="334" width="16" height="20" fill="#1a1a1a"/>
+    <!-- nozzle button -->
+    <rect x="434" y="322" width="36" height="14" rx="3" fill="#2a2a2a" stroke="#000" stroke-width="1.5"/>
+    <!-- nozzle hole -->
+    <circle cx="452" cy="329" r="3" fill="#e63946"/>
+  </g>
+
+  <!-- Spray dots from nozzle toward heart -->
+  <g fill="#e63946">
+    <circle cx="492" cy="314" r="4"/>
+    <circle cx="520" cy="304" r="6"/>
+    <circle cx="548" cy="296" r="3"/>
+    <circle cx="572" cy="288" r="5"/>
+    <circle cx="598" cy="280" r="3"/>
+    <circle cx="510" cy="330" r="3"/>
+    <circle cx="540" cy="322" r="2.5"/>
+    <circle cx="578" cy="310" r="2.5"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="500" y="788" text-anchor="middle"
+        font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="62" font-weight="800" fill="#1a1a1a" letter-spacing="-1.5">
+    aaron<tspan fill="#e63946">.</tspan>love
+  </text>
+</svg>

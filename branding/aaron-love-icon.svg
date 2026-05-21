@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="aaron.love icon">
+  <!-- Rounded square plate so the mark works as an app icon too -->
+  <rect width="512" height="512" rx="96" fill="#fff8ee"/>
+
+  <!-- BOLD HEART — fills the canvas, survives at 16px -->
+  <path d="M256 452
+           C256 452, 60 320, 60 196
+           C60 132, 110 84, 174 84
+           C214 84, 244 104, 256 138
+           C268 104, 298 84, 338 84
+           C402 84, 452 132, 452 196
+           C452 320, 256 452, 256 452 Z"
+        fill="#e63946"/>
+
+  <!-- Drip — single, chunky, visible at icon size -->
+  <path d="M158 312
+           C158 312, 148 384, 156 408
+           C161 422, 178 422, 182 408
+           C190 384, 178 312, 178 312 Z"
+        fill="#e63946"/>
+
+  <!-- SPRAY CAN silhouette — bold, in front, high contrast against the red -->
+  <g>
+    <!-- shadow behind can -->
+    <rect x="200" y="118" width="120" height="324" rx="14" fill="#000" fill-opacity="0.18"/>
+
+    <!-- nozzle button -->
+    <rect x="232" y="92" width="48" height="20" rx="3" fill="#1a1a1a"/>
+    <!-- nozzle stem -->
+    <rect x="244" y="108" width="24" height="20" fill="#1a1a1a"/>
+    <!-- cap -->
+    <rect x="212" y="124" width="88" height="64" rx="6" fill="#1a1a1a"/>
+    <!-- cap base ring -->
+    <rect x="200" y="186" width="112" height="14" fill="#0a0a0a"/>
+    <!-- can body -->
+    <rect x="200" y="200" width="112" height="240" rx="6" fill="#1a1a1a"/>
+    <!-- label band (cream so it pops on dark can over red heart) -->
+    <rect x="200" y="282" width="112" height="80" fill="#fff8ee"/>
+    <!-- LOVE wordmark on label -->
+    <text x="256" y="336" text-anchor="middle"
+          font-family="Impact, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+          font-size="46" font-weight="900" fill="#e63946" letter-spacing="3">LOVE</text>
+    <!-- body highlight -->
+    <rect x="210" y="206" width="8" height="228" fill="#ffffff" fill-opacity="0.18"/>
+    <!-- nozzle hole -->
+    <circle cx="256" cy="102" r="4" fill="#e63946"/>
+  </g>
+
+  <!-- Spray dots flicking up from nozzle — bold enough to read small -->
+  <g fill="#e63946">
+    <circle cx="200" cy="78" r="8"/>
+    <circle cx="170" cy="64" r="6"/>
+    <circle cx="312" cy="78" r="8"/>
+    <circle cx="342" cy="64" r="6"/>
+    <circle cx="256" cy="56" r="6"/>
+  </g>
+</svg>
