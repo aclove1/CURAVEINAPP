@@ -1,0 +1,40 @@
+{
+  "run_meta": {
+    "objective": "1BR loft-style live/work spaces, Dallas / North Dallas / Plano corridor",
+    "baseline_date": "2026-05-29",
+    "budget_cap_monthly": 3500,
+    "exception_ceiling_monthly": 3800,
+    "sqft_target": [1000, 1800],
+    "ceiling_pref_ft": 12,
+    "ceiling_min_ft": 10,
+    "method": "web_search discovery; web_fetch attempted (many loft-aggregator + building-direct sites return HTTP 403 to automated fetch -- detail extracted from search snippets instead and flagged for human verification)",
+    "verification_note": "Prices/sqft/ceilings are point-in-time facts from listing/aggregator snippets, not contractual. Confirm every shortlisted unit by phone before acting."
+  },
+  "tier_A_storefront_livework": [
+    "Trinity Lofts (1430 Dragon St, Design District)",
+    "Bishop Arts Live/Work Lofts #422 (Oak Cliff)",
+    "Expo Park Lofts (Exposition Park)"
+  ],
+  "tier_B_authentic_loft_arts_tolerant": [
+    "South Side on Lamar (Cedars)",
+    "Interurban Building (Downtown)",
+    "Adam Hats Lofts (Deep Ellum)",
+    "Deep Ellum Lofts / Murray (Deep Ellum)",
+    "The Davis Building (Downtown)"
+  ],
+  "tier_C_secondary_or_high_risk": [
+    "SoCo Urban Lofts (condo HOA)",
+    "@15th (Downtown Plano)",
+    "15th Street Village (Downtown Plano)",
+    "Downtown Carrollton Lofts",
+    "Frisco Station Lofts",
+    "MAA Addison Circle (loft styling only)"
+  ],
+  "rejected": "see rejected.csv",
+  "verification_paths": {
+    "zoning_dallas": "Dallas Development Services / Planning (Ch. 51A-4.125 mixed-use; live/work units 2018 code amendment) -- confirm base zoning per address via city zoning portal",
+    "zoning_plano": "Plano Planning Dept -- confirm Downtown/Central district live/work allowance, street-level work component requirement",
+    "hoa": "Pull condo covenants for SoCo Urban Lofts, 15th Street Village, any for-sale loft",
+    "brokers": "DFW Urban Realty (loft specialist), The Urban Avenue, Jim Lake Companies (Design District owner-landlord), August Real Estate (Expo Park)"
+  }
+}
