@@ -17,6 +17,7 @@ import {
 } from '@/lib/model'
 import { applyIncomeBuffer } from '@/lib/defaults'
 import { ModelDisclosure } from '@/components/ui/ModelDisclosure'
+import { InvestorOnePager } from '@/components/print/InvestorOnePager'
 import type { Scenario } from '@/lib/types'
 
 // AUDIT 2026-04-23 C-7 resolved: tooltip now labels revenue dynamics on the
@@ -222,21 +223,80 @@ export default function DashboardPage() {
     return { leads, contacts, booked, shows, treated, procs, rev }
   }, [dash.y1Months])
 
+  // ── Investor one-pager data (print export) ──
+  // Pure formatting of already-computed dashboard values; no second engine
+  // pass, so the PDF always matches what's on screen.
+  const activeScenario = WIDGET_SCENARIOS.find(s => s.key === widgetScenario)
+  const onePagerInputs = [
+    ...SLIDERS.map(({ label, field }) => ({
+      label,
+      value: fmtPct((assumptions[field] as Record<Scenario, number>)[assumptions.scenario]),
+    })),
+    ...(widgetScenario === 'hybridWound'
+      ? [{ label: 'Starting Capacity', value: fmtPct(assumptions.startingProcedureCapacity, 0) }]
+      : []),
+    { label: 'Capacity Ceiling', value: `${dash.scenario.maxCapacityPerMonth}/mo` },
+  ]
+  const onePagerKpis = [
+    { label: 'Y1 Procedures', value: fmtNumber(y1Procs), sub: monthsAtCap > 0 ? `${monthsAtCap} mo at capacity` : undefined },
+    { label: 'Blended Rate', value: fmtCurrency(matureRate, false), sub: 'Mature (M5+) / proc' },
+    { label: 'Revenue / Procedure', value: fmtCurrency(revPerProc, false), sub: 'Before 8% mgmt fee' },
+    { label: 'Revenue / Patient', value: fmtCurrency(revPerPatient, false), sub: 'Before 8% mgmt fee' },
+    { label: 'Cost Per Acquisition', value: fmtCurrency(cpa, false), sub: 'Marketing / treated' },
+    { label: 'Procs / Patient', value: fmtDecimal(dash.scenario.procsPerPatient, 1) },
+  ]
+  const onePagerYears = [
+    { label: 'Year 1', y: dash.y1 },
+    { label: 'Year 2', y: dash.y2 },
+    { label: 'Year 3', y: dash.y3 },
+  ].map(({ label, y }) => ({
+    label,
+    procs: y.annualProcs,
+    blendedRate: y.blendedRate,
+    grossRevenue: y.grossRevenue,
+    mgmtFee: y.mgmtFee,
+    netRevenue: y.netRevenue,
+    ebitda: y.ebitda,
+    ebitdaMargin: y.ebitdaMargin,
+  }))
+
   return (
     <div>
+      <div className="print:hidden">
       <TopBar title="Dashboard — Key Metrics Snapshot" />
       <div className="p-6 space-y-6">
 
-        <div className="flex items-center gap-4">
-          <a
-            href="https://curavein.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block px-4 py-2 text-sm font-semibold text-gray-950 rounded-lg transition-colors hover:opacity-90"
-            style={{ backgroundColor: '#5faaa6' }}
-          >
-            CuraVein&trade; Flagship Proforma
-          </a>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-white tracking-tight">
+              CuraVein&trade; Practice Development Model
+            </h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Interactive pro forma for launching, acquiring, and scaling a venous disease clinic.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+            <a
+              href="https://curavein.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 text-sm font-semibold text-gray-950 rounded-lg transition-colors hover:opacity-90"
+              style={{ backgroundColor: '#5faaa6' }}
+            >
+              CuraVein&trade; Flagship Proforma
+            </a>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border-2 border-[#5faaa6]/60 text-[#5faaa6] transition-colors hover:bg-[#5faaa6]/10 cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export One-Pager
+            </button>
+          </div>
         </div>
 
         {/* v14.1 — Model disclosure: defines the $/procedure CPT build
@@ -573,6 +633,19 @@ export default function DashboardPage() {
           </table>
         </div>
       </div>
+      </div>
+
+      {/* Print-only investor snapshot — rendered by window.print() via the
+          Export One-Pager button. Everything above is print:hidden. */}
+      <InvestorOnePager
+        scenarioLabel={activeScenario?.label ?? widgetScenario}
+        scenarioSub={activeScenario?.sub ?? ''}
+        inputs={onePagerInputs}
+        kpis={onePagerKpis}
+        years={onePagerYears}
+        bridge={bridge}
+        maxCapacity={dash.scenario.maxCapacityPerMonth}
+      />
     </div>
   )
 }

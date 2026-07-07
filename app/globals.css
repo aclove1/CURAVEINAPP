@@ -119,3 +119,35 @@ input[type='range']::-moz-range-thumb {
     overscroll-behavior-x: contain;
   }
 }
+
+/* ── Investor one-pager print export ──
+   The dashboard wraps all screen content in `print:hidden` and renders
+   InvestorOnePager (`hidden print:block`). These rules flip the document
+   to a light paper palette and strip app chrome (sidebar/topbar) so the
+   export is exactly one clean US Letter page. */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 10mm 12mm;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+  body {
+    overflow: visible;
+  }
+  aside,
+  nav,
+  header {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+  }
+  #investor-onepager {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
