@@ -16,5 +16,6 @@ _*.ts
 # Vercel
 .vercel
 
-# Local tool configs (Claude Code, etc.)
+# Local tool configs (Claude Code, Cowork, etc.)
 .claude/
+AGENTS.md
