@@ -3,6 +3,7 @@
 import { Sidebar } from './Sidebar'
 import { Backdrop } from './Backdrop'
 import { UIStateProvider } from './UIStateContext'
+import { AccessGate } from '@/components/gate/AccessGate'
 
 /**
  * AppShell
@@ -19,6 +20,9 @@ import { UIStateProvider } from './UIStateContext'
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <UIStateProvider>
+      {/* Email gate — blurred-teaser overlay until a valid magic-link
+          session cookie is present. See components/gate/AccessGate.tsx. */}
+      <AccessGate />
       <div className="flex min-h-[100dvh]">
         <Sidebar />
         <Backdrop />
